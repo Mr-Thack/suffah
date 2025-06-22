@@ -1,4 +1,4 @@
 #!/usr/bin/zsh
-gitingest -e digest.txt -e defaultData/ -e data/timings.csv -e .svelte-kit/ -e .netlify/ -e ing -e prisma/supabase_backup* ./ 
+gitingest -e digest.txt -e defaultData/ -e data/timings.csv -e .svelte-kit/ -e .netlify/ -e ing ./ 
 
 cat digest.txt | wl-copy

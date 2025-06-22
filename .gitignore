@@ -1,5 +1,8 @@
 node_modules
 
+
+digest.text
+
 # Output
 .output
 .vercel
