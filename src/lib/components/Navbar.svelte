@@ -135,26 +135,30 @@
       <div class="flex items-center space-x-2">
         <Button onclick={toggleMode} variant="ghost" size="icon">
           <Sun
-            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
           />
           <Moon
-            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
           />
           <span class="sr-only">Toggle theme</span>
         </Button>
 
-        <Button class="hidden md:inline-flex">Get Started</Button>
+        <a href="/get-started" class="hidden md:inline-flex">
+          <Button>Get Started</Button>
+        </a>
 
         <div class="md:hidden">
-          <Collapsible.Trigger>
-            <Button variant="ghost" size="icon">
-              {#if isMobileMenuOpen}
-                <X class="h-5 w-5" />
-              {:else}
-                <Menu class="h-5 w-5" />
-              {/if}
-              <span class="sr-only">Toggle Menu</span>
-            </Button>
+          <Collapsible.Trigger asChild>
+            {#snippet child({ props })}
+              <Button {...props} variant="ghost" size="icon">
+                {#if isMobileMenuOpen}
+                  <X class="h-5 w-5" />
+                {:else}
+                  <Menu class="h-5 w-5" />
+                {/if}
+                <span class="sr-only">Toggle Menu</span>
+              </Button>
+            {/snippet}
           </Collapsible.Trigger>
         </div>
       </div>
@@ -175,7 +179,9 @@
           </a>
         {/each}
         <hr class="my-2" />
-        <Button class="w-full">Get Started</Button>
+        <a href="/get-started" class="w-full">
+          <Button class="w-full">Get Started</Button>
+        </a>
       </div>
     </Collapsible.Content>
   </header>
