@@ -21,27 +21,15 @@
   // --- DATA ---
   const navLinks = [
     { href: '/', label: 'Home' },
-    { href: '/about', label: 'About' },
-    { href: '/pricing', label: 'Pricing' },
+    { href: '/maktab', label: 'Maktab' },
+    { href: '/location', label: 'Location' },
+    { href: '/donate', label: 'Donate' },
   ]
 
-  const featuresLinks = [
-    {
-      href: '/features/analytics',
-      title: 'Analytics',
-      description: 'See your data in a new light.',
-    },
-    {
-      href: '/features/automation',
-      title: 'Automation',
-      description: 'Let your business run itself.',
-    },
-    {
-      href: '/features/integrations',
-      title: 'Integrations',
-      description: 'Connect with your favorite tools.',
-    },
-  ]
+  const actionLink = {
+    href: '/display',
+    label: 'View Prayer Times',
+  }
 
   // --- SIDE EFFECTS ($effect) ---
   $effect(() => {
@@ -97,37 +85,12 @@
                 <NavigationMenu.Link
                   href={link.href}
                   active={currentPath === link.href}
+                  class="text-base font-medium"
                 >
                   {link.label}
                 </NavigationMenu.Link>
               </NavigationMenu.Item>
             {/each}
-            <NavigationMenu.Item>
-              <NavigationMenu.Trigger>Features</NavigationMenu.Trigger>
-              <NavigationMenu.Content>
-                <ul
-                  class="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]"
-                >
-                  {#each featuresLinks as component}
-                    <li>
-                      <NavigationMenu.Link
-                        href={component.href}
-                        class="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
-                      >
-                        <div class="text-sm font-medium leading-none">
-                          {component.title}
-                        </div>
-                        <p
-                          class="line-clamp-2 text-sm leading-snug text-muted-foreground"
-                        >
-                          {component.description}
-                        </p>
-                      </NavigationMenu.Link>
-                    </li>
-                  {/each}
-                </ul>
-              </NavigationMenu.Content>
-            </NavigationMenu.Item>
           </NavigationMenu.List>
         </NavigationMenu.Root>
       </div>
@@ -143,9 +106,13 @@
           <span class="sr-only">Toggle theme</span>
         </Button>
 
-        <a href="/get-started" class="hidden md:inline-flex">
-          <Button>Get Started</Button>
-        </a>
+        <Button
+          size="lg"
+          href={actionLink.href}
+          class="hidden md:inline-flex text-base semi-bold"
+        >
+          {actionLink.label}
+        </Button>
 
         <div class="md:hidden">
           <Collapsible.Trigger asChild>
@@ -171,7 +138,7 @@
         {#each navLinks as link}
           <a
             href={link.href}
-            class="text-lg font-medium {currentPath === link.href
+            class="text-lg text-center font-medium {currentPath === link.href
               ? 'text-foreground'
               : 'text-muted-foreground'} hover:text-foreground transition-colors"
           >
@@ -179,9 +146,9 @@
           </a>
         {/each}
         <hr class="my-2" />
-        <a href="/get-started" class="w-full">
-          <Button class="w-full">Get Started</Button>
-        </a>
+        <Button href={actionLink.href} class="w-full text-base font-semibold">
+          {actionLink.label}
+        </Button>
       </div>
     </Collapsible.Content>
   </header>
