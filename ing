@@ -1,4 +1,4 @@
 #!/usr/bin/zsh
-gitingest -e digest.txt -e defaultData/ -e data/timings.csv -e .svelte-kit/ -e .netlify/ -e ing ./ 
+gitingest -e digest.txt -e defaultData/ -e src/lib/components/ui -e .aider.chat.history.md -e .aider.input.history -e .aider.tags.cache.v4/ -e .svelte-kit/ -e data/timings.csv -e .svelte-kit/ -e .netlify/ -e ing ./ 
 
 cat digest.txt | wl-copy
