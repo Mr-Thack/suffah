@@ -75,7 +75,7 @@
               stroke-width="16"
             ></line>
           </svg>
-          <span class="font-bold">MyApp</span>
+          <span class="font-bold">Masjid Suffah</span>
         </a>
 
         <NavigationMenu.Root class="hidden md:flex">
