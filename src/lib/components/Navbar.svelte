@@ -1,212 +1,182 @@
 <script lang="ts">
- import * as NavigationMenu from "$lib/components/ui/navigation-menu/index.js";
- import { cn } from "$lib/utils.js";
- import { navigationMenuTriggerStyle } from "$lib/components/ui/navigation-menu/navigation-menu-trigger.svelte";
- import type { HTMLAttributes } from "svelte/elements";
- import CircleHelpIcon from "@lucide/svelte/icons/circle-help";
- import CircleIcon from "@lucide/svelte/icons/circle";
- import CircleCheckIcon from "@lucide/svelte/icons/circle-check";
- 
- const components: { title: string; href: string; description: string }[] = [
-  {
-   title: "Alert Dialog",
-   href: "/docs/primitives/alert-dialog",
-   description:
-    "A modal dialog that interrupts the user with important content and expects a response."
-  },
-  {
-   title: "Hover Card",
-   href: "/docs/primitives/hover-card",
-   description:
-    "For sighted users to preview content available behind a link."
-  },
-  {
-   title: "Progress",
-   href: "/docs/primitives/progress",
-   description:
-    "Displays an indicator showing the completion progress of a task, typically displayed as a progress bar."
-  },
-  {
-   title: "Scroll-area",
-   href: "/docs/primitives/scroll-area",
-   description: "Visually or semantically separates content."
-  },
-  {
-   title: "Tabs",
-   href: "/docs/primitives/tabs",
-   description:
-    "A set of layered sections of content—known as tab panels—that are displayed one at a time."
-  },
-  {
-   title: "Tooltip",
-   href: "/docs/primitives/tooltip",
-   description:
-    "A popup that displays information related to an element when the element receives keyboard focus or the mouse hovers over it."
-  }
- ];
- 
- type ListItemProps = HTMLAttributes<HTMLAnchorElement> & {
-  title: string;
-  href: string;
-  content: string;
- };
+  // SvelteKit imports for browser detection and page state
+  import { browser } from '$app/environment'
+  import { page } from '$app/stores'
+
+  // Icon imports from lucide-svelte
+  import { Menu, Moon, Sun, X } from 'lucide-svelte'
+
+  // ShadCN-Svelte component imports
+  import * as NavigationMenu from '$lib/components/ui/navigation-menu'
+  import * as Collapsible from '$lib/components/ui/collapsible'
+  import { Button } from '$lib/components/ui/button'
+
+  // Mode-watcher for theme toggling
+  import { toggleMode } from 'mode-watcher'
+
+  // --- STATE MANAGEMENT (Svelte 5 Runes) ---
+  let isMobileMenuOpen = $state(false)
+  let currentPath = $state('')
+
+  // --- DATA ---
+  const navLinks = [
+    { href: '/', label: 'Home' },
+    { href: '/about', label: 'About' },
+    { href: '/pricing', label: 'Pricing' },
+  ]
+
+  const featuresLinks = [
+    {
+      href: '/features/analytics',
+      title: 'Analytics',
+      description: 'See your data in a new light.',
+    },
+    {
+      href: '/features/automation',
+      title: 'Automation',
+      description: 'Let your business run itself.',
+    },
+    {
+      href: '/features/integrations',
+      title: 'Integrations',
+      description: 'Connect with your favorite tools.',
+    },
+  ]
+
+  // --- SIDE EFFECTS ($effect) ---
+  $effect(() => {
+    currentPath = $page.url.pathname
+  })
 </script>
- 
-{#snippet ListItem({
- title,
- content,
- href,
- class: className,
- ...restProps
-}: ListItemProps)}
- <li>
-  <NavigationMenu.Link>
-   {#snippet child()}
-    <a
-     {href}
-     class={cn(
-      "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors",
-      className
-     )}
-     {...restProps}
+
+<Collapsible.Root bind:open={isMobileMenuOpen} class="w-full">
+  <header
+    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
+  >
+    <div
+      class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between"
     >
-     <div class="text-sm font-medium leading-none">{title}</div>
-     <p class="text-muted-foreground line-clamp-2 text-sm leading-snug">
-      {content}
-     </p>
-    </a>
-   {/snippet}
-  </NavigationMenu.Link>
- </li>
-{/snippet}
- 
-<NavigationMenu.Root viewport={false}>
- <NavigationMenu.List>
-  <NavigationMenu.Item>
-   <NavigationMenu.Trigger>Home</NavigationMenu.Trigger>
-   <NavigationMenu.Content>
-    <ul
-     class="grid gap-2 p-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]"
-    >
-     <li class="row-span-3">
-      <NavigationMenu.Link
-       class="from-muted/50 to-muted bg-linear-to-b outline-hidden flex h-full w-full select-none flex-col justify-end rounded-md p-6 no-underline focus:shadow-md"
-      >
-       {#snippet child({ props })}
-        <a {...props} href="/">
-         <div class="mb-2 mt-4 text-lg font-medium">shadcn-svelte</div>
-         <p class="text-muted-foreground text-sm leading-tight">
-          Beautifully designed components built with Tailwind CSS.
-         </p>
+      <div class="flex items-center gap-6">
+        <a href="/" class="flex items-center space-x-2">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 256 256"
+            class="h-6 w-6"
+          >
+            <rect width="256" height="256" fill="none"></rect>
+            <line
+              x1="208"
+              y1="128"
+              x2="128"
+              y2="208"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="16"
+            ></line>
+            <line
+              x1="192"
+              y1="40"
+              x2="40"
+              y2="192"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="16"
+            ></line>
+          </svg>
+          <span class="font-bold">MyApp</span>
         </a>
-       {/snippet}
-      </NavigationMenu.Link>
-     </li>
-     {@render ListItem({
-      href: "/docs",
-      title: "Introduction",
-      content:
-       "Re-usable components built using Bits UI and Tailwind CSS."
-     })}
-     {@render ListItem({
-      href: "/docs/installation",
-      title: "Installation",
-      content: "How to install dependencies and structure your app."
-     })}
-     {@render ListItem({
-      href: "/docs/primitives/typography",
-      title: "Typography",
-      content: "Styles for headings, paragraphs, lists...etc"
-     })}
-    </ul>
-   </NavigationMenu.Content>
-  </NavigationMenu.Item>
-  <NavigationMenu.Item>
-   <NavigationMenu.Trigger>Components</NavigationMenu.Trigger>
-   <NavigationMenu.Content>
-    <ul
-     class="grid w-[400px] gap-2 p-2 md:w-[500px] md:grid-cols-2 lg:w-[600px]"
+
+        <NavigationMenu.Root class="hidden md:flex">
+          <NavigationMenu.List>
+            {#each navLinks as link}
+              <NavigationMenu.Item>
+                <NavigationMenu.Link
+                  href={link.href}
+                  active={currentPath === link.href}
+                >
+                  {link.label}
+                </NavigationMenu.Link>
+              </NavigationMenu.Item>
+            {/each}
+            <NavigationMenu.Item>
+              <NavigationMenu.Trigger>Features</NavigationMenu.Trigger>
+              <NavigationMenu.Content>
+                <ul
+                  class="grid w-[400px] gap-3 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]"
+                >
+                  {#each featuresLinks as component}
+                    <li>
+                      <NavigationMenu.Link
+                        href={component.href}
+                        class="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground"
+                      >
+                        <div class="text-sm font-medium leading-none">
+                          {component.title}
+                        </div>
+                        <p
+                          class="line-clamp-2 text-sm leading-snug text-muted-foreground"
+                        >
+                          {component.description}
+                        </p>
+                      </NavigationMenu.Link>
+                    </li>
+                  {/each}
+                </ul>
+              </NavigationMenu.Content>
+            </NavigationMenu.Item>
+          </NavigationMenu.List>
+        </NavigationMenu.Root>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <Button onclick={toggleMode} variant="ghost" size="icon">
+          <Sun
+            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
+          />
+          <Moon
+            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
+          />
+          <span class="sr-only">Toggle theme</span>
+        </Button>
+
+        <Button class="hidden md:inline-flex">Get Started</Button>
+
+        <div class="md:hidden">
+          <Collapsible.Trigger>
+            <Button variant="ghost" size="icon">
+              {#if isMobileMenuOpen}
+                <X class="h-5 w-5" />
+              {:else}
+                <Menu class="h-5 w-5" />
+              {/if}
+              <span class="sr-only">Toggle Menu</span>
+            </Button>
+          </Collapsible.Trigger>
+        </div>
+      </div>
+    </div>
+
+    <Collapsible.Content
+      class="md:hidden w-full border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     >
-     {#each components as component, i (i)}
-      {@render ListItem({
-       href: component.href,
-       title: component.title,
-       content: component.description
-      })}
-     {/each}
-    </ul>
-   </NavigationMenu.Content>
-  </NavigationMenu.Item>
- 
-  <NavigationMenu.Item>
-   <NavigationMenu.Link>
-    {#snippet child()}
-     <a href="/docs" class={navigationMenuTriggerStyle()}>Docs</a>
-    {/snippet}
-   </NavigationMenu.Link>
-  </NavigationMenu.Item>
-  <NavigationMenu.Item>
-   <NavigationMenu.Trigger>List</NavigationMenu.Trigger>
-   <NavigationMenu.Content>
-    <ul class="grid w-[300px] gap-4 p-2">
-     <li>
-      <NavigationMenu.Link href="#">
-       <div class="font-medium">Components</div>
-       <div class="text-muted-foreground">
-        Browse all components in the library.
-       </div>
-      </NavigationMenu.Link>
-      <NavigationMenu.Link href="#">
-       <div class="font-medium">Documentation</div>
-       <div class="text-muted-foreground">
-        Learn how to use the library.
-       </div>
-      </NavigationMenu.Link>
-      <NavigationMenu.Link href="#">
-       <div class="font-medium">Blog</div>
-       <div class="text-muted-foreground">
-        Read our latest blog posts.
-       </div>
-      </NavigationMenu.Link>
-     </li>
-    </ul>
-   </NavigationMenu.Content>
-  </NavigationMenu.Item>
-  <NavigationMenu.Item>
-   <NavigationMenu.Trigger>Simple</NavigationMenu.Trigger>
-   <NavigationMenu.Content>
-    <ul class="grid w-[200px] gap-4 p-2">
-     <li>
-      <NavigationMenu.Link href="#">Components</NavigationMenu.Link>
-      <NavigationMenu.Link href="#">Documentation</NavigationMenu.Link>
-      <NavigationMenu.Link href="#">Blocks</NavigationMenu.Link>
-     </li>
-    </ul>
-   </NavigationMenu.Content>
-  </NavigationMenu.Item>
-  <NavigationMenu.Item>
-   <NavigationMenu.Trigger>With Icon</NavigationMenu.Trigger>
- 
-   <NavigationMenu.Content>
-    <ul class="grid w-[200px] gap-4 p-2">
-     <li>
-      <NavigationMenu.Link href="#" class="flex-row items-center gap-2">
-       <CircleHelpIcon />
-       Backlog
-      </NavigationMenu.Link>
- 
-      <NavigationMenu.Link href="#" class="flex-row items-center gap-2">
-       <CircleIcon />
-       To Do
-      </NavigationMenu.Link>
- 
-      <NavigationMenu.Link href="#" class="flex-row items-center gap-2">
-       <CircleCheckIcon />
-       Done
-      </NavigationMenu.Link>
-     </li>
-    </ul>
-   </NavigationMenu.Content>
-  </NavigationMenu.Item>
- </NavigationMenu.List>
-</NavigationMenu.Root>
+      <div class="grid gap-4">
+        {#each navLinks as link}
+          <a
+            href={link.href}
+            class="text-lg font-medium {currentPath === link.href
+              ? 'text-foreground'
+              : 'text-muted-foreground'} hover:text-foreground transition-colors"
+          >
+            {link.label}
+          </a>
+        {/each}
+        <hr class="my-2" />
+        <Button class="w-full">Get Started</Button>
+      </div>
+    </Collapsible.Content>
+  </header>
+</Collapsible.Root>

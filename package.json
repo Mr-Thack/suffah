@@ -22,6 +22,8 @@
 		"@tailwindcss/vite": "^4.0.0",
 		"bits-ui": "^2.8.6",
 		"clsx": "^2.1.1",
+		"prettier": "^3.5.3",
+		"prettier-plugin-svelte": "^3.4.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"tailwind-merge": "^3.3.1",
@@ -33,6 +35,7 @@
 		"vite-plugin-devtools-json": "^0.2.0"
 	},
 	"dependencies": {
+		"lucide-svelte": "^0.522.0",
 		"mode-watcher": "^1.0.8"
 	}
 }
