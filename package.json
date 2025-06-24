@@ -23,6 +23,7 @@
 		"@tailwindcss/vite": "^4.0.0",
 		"bits-ui": "^2.8.6",
 		"clsx": "^2.1.1",
+		"formsnap": "^2.0.1",
 		"prettier": "^3.5.3",
 		"prettier-plugin-svelte": "^3.4.0",
 		"svelte": "^5.0.0",
@@ -37,6 +38,8 @@
 	},
 	"dependencies": {
 		"lucide-svelte": "^0.522.0",
-		"mode-watcher": "^1.0.8"
+		"mode-watcher": "^1.0.8",
+		"svelte-sonner": "^1.0.5",
+		"sveltekit-superforms": "^2.27.0"
 	}
 }
