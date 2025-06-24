@@ -120,34 +120,6 @@
     use:enhance
     class="max-w-4xl mx-auto px-4 pb-16 space-y-8"
     onsubmit={handleSubmit}>
-    <Card class="border-primary/20">
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <Users class="w-5 h-5" />
-          Registration Fees
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {#each pricingTiers as tier}
-            <div
-              class="text-center p-4 rounded-lg border transition-colors"
-              class:bg-primary={tier.isActive}
-              class:border-primary={tier.isActive}
-              class:text-primary-foreground={tier.isActive}>
-              <div class="text-2xl font-bold">${tier.price}</div>
-              <div class="text-sm opacity-70">{tier.label}</div>
-            </div>
-          {/each}
-        </div>
-        <div class="mt-4 text-center">
-          <Badge variant="secondary" class="text-lg px-4 py-2">
-            Your Total: ${totalCost}
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
-
     <Card>
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
@@ -362,7 +334,7 @@
                 <Form.Control>
                   {#snippet children({ props })}
                     <Form.Label>Gender</Form.Label>
-                    <Select.Root bind:value={child.sex}>
+                    <Select.Root bind:value={child.sex} type="single">
                       <Select.Trigger {...props}>
                         {child.sex === 'male'
                           ? 'Male'
@@ -393,15 +365,34 @@
       </CardContent>
     </Card>
 
-    <Card class="border-primary/20">
-      <CardContent class="pt-6">
-        <div class="space-y-4">
-          <div class="text-center">
-            <div class="text-lg font-medium">Registration Summary</div>
-            <div class="text-sm text-muted-foreground">
-              {numChildren} child{numChildren > 1 ? 'ren' : ''} • Total: ${totalCost}
+    <!-- Replace the existing pricing card and final payment card with this single card -->
+    <Card
+      class="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+      <CardHeader>
+        <CardTitle class="flex items-center gap-2">
+          <Users class="w-5 h-5" />
+          Registration Summary & Payment
+        </CardTitle>
+      </CardHeader>
+      <CardContent class="space-y-6">
+        <!-- Pricing Tiers Display -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {#each pricingTiers as tier}
+            <div
+              class="text-center p-4 rounded-lg border transition-colors"
+              class:bg-primary={tier.isActive}
+              class:border-primary={tier.isActive}
+              class:text-primary-foreground={tier.isActive}
+              class:border-muted={!tier.isActive}
+              class:bg-muted={!tier.isActive}>
+              <div class="text-2xl font-bold">${tier.price}</div>
+              <div class="text-sm opacity-70">{tier.label}</div>
             </div>
-          </div>
+          {/each}
+        </div>
+
+        <!-- Warning and Submit -->
+        <div class="space-y-4">
           {#if !hasCompleteParent}
             <div
               class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700">
@@ -409,13 +400,15 @@
               (name, phone, and email).
             </div>
           {/if}
+
           <Button
             type="submit"
             size="lg"
-            class="w-full"
+            class="w-full text-lg py-6"
             disabled={!hasCompleteParent}>
-            Continue to Payment (${totalCost})
+            Continue to Payment • ${totalCost}
           </Button>
+
           <p class="text-xs text-muted-foreground text-center">
             By submitting this form, you acknowledge any changes must be made by
             contacting Administration.
