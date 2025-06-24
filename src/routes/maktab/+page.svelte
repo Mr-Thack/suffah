@@ -75,11 +75,6 @@
       'The primary instructors are Imaam Muhammad Jaffari for boys and Aalimah Rabia Jaffari for girls. There are also a few volunteers.',
     ],
   ]
-
-  function handleEnrollment() {
-    // Navigate to enrollment portal
-    console.log('Navigate to enrollment portal')
-  }
 </script>
 
 {#snippet dot(emphasize)}
@@ -199,11 +194,7 @@
               {/each}
             </div>
           </div>
-          <Button
-            size="lg"
-            class="w-full text-lg font-semibold"
-            on:click={handleEnrollment}
-          >
+          <Button size="lg" class="w-full text-lg font-semibold" href="/enroll">
             <svg
               class="w-5 h-5 mr-2"
               fill="none"
