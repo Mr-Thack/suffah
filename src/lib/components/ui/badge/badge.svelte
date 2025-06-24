@@ -15,6 +15,7 @@
           'bg-destructive [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/70 border-transparent text-white',
         outline:
           'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+        success: 'text-xs bg-green-100 text-green-700 border-green-200',
       },
       // Makes it darker than original to give differentiation
       shade: {
@@ -56,7 +57,6 @@
   data-slot="badge"
   {href}
   class={cn(badgeVariants({ variant, shade }), className)}
-  {...restProps}
->
+  {...restProps}>
   {@render children?.()}
 </svelte:element>

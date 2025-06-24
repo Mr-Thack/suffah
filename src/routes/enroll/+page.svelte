@@ -67,6 +67,9 @@
       $formData.mother.email
     ),
   )
+  const addressComplete = $derived(
+    !!($formData.address && $formData.city && $formData.zipCode),
+  )
   const hasCompleteParent = $derived(fatherComplete || motherComplete)
 
   const pricingTiers = $derived([
@@ -110,6 +113,12 @@
   <title>Maktab Registration - Masjid Suffah</title>
 </svelte:head>
 
+{#snippet completionIndicator(complete)}
+  {#if complete}
+    <Badge variant="success">✓ Complete</Badge>
+  {/if}
+{/snippet}
+
 <div class="min-h-screen bg-background">
   <div
     class="text-center py-12 px-4 bg-gradient-to-b from-primary/5 to-background">
@@ -139,13 +148,10 @@
         </p>
       </CardHeader>
       <CardContent class="space-y-6">
-        <!-- Father's Info -->
         <div class="space-y-4">
           <h4 class="font-medium flex items-center gap-2">
             Father's Information
-            {#if fatherComplete}
-              <Badge variant="secondary" class="text-xs">Complete</Badge>
-            {/if}
+            {@render completionIndicator(fatherComplete)}
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Form.Field {form} name="father.name">
@@ -191,13 +197,10 @@
             </Form.Field>
           </div>
         </div>
-        <!-- Mother's Info -->
         <div class="space-y-4">
           <h4 class="font-medium flex items-center gap-2">
             Mother's Information
-            {#if motherComplete}
-              <Badge variant="secondary" class="text-xs">Complete</Badge>
-            {/if}
+            {@render completionIndicator(motherComplete)}
           </h4>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Form.Field {form} name="mother.name">
@@ -243,10 +246,10 @@
             </Form.Field>
           </div>
         </div>
-        <!-- Address -->
         <div class="space-y-4 pt-4 border-t">
           <h4 class="font-medium flex items-center gap-2">
             <MapPin class="w-4 h-4" /> Address Information
+            {@render completionIndicator(addressComplete)}
           </h4>
           <Form.Field {form} name="address">
             <Form.Control>
@@ -290,7 +293,6 @@
       </CardContent>
     </Card>
 
-    <!-- Children Information -->
     <Card>
       <CardHeader>
         <CardTitle class="flex items-center gap-2 justify-center">
@@ -307,13 +309,7 @@
             <div class="flex items-center justify-between">
               <h4 class="font-medium">Child {index + 1}</h4>
               <div class="flex items-center gap-2">
-                {#if isChildComplete(child)}
-                  <Badge
-                    variant="secondary"
-                    class="text-xs bg-green-100 text-green-700 border-green-200">
-                    ✓ Complete
-                  </Badge>
-                {/if}
+                {@render completionIndicator(isChildComplete(child))}
                 {#if $formData.children.length > 1}
                   <Button
                     type="button"
@@ -326,20 +322,18 @@
                 {/if}
               </div>
             </div>
-            <div
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+            <div class="flex flex-wrap gap-4 items-start">
               <Form.Field
                 {form}
                 name="children[{index}].name"
-                class="text-center">
+                class="flex-1 min-w-0">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block text-center">Name</Form.Label>
+                    <Form.Label class="block">Name</Form.Label>
                     <Input
                       {...props}
                       bind:value={child.name}
-                      placeholder="Child's full name"
-                      class="text-center" />
+                      placeholder="Child's full name" />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
@@ -347,16 +341,11 @@
               <Form.Field
                 {form}
                 name="children[{index}].dob"
-                class="text-center">
+                class="flex-shrink-0">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block text-center"
-                      >Date of Birth</Form.Label>
-                    <Input
-                      type="date"
-                      {...props}
-                      bind:value={child.dob}
-                      class="justify-center text-center" />
+                    <Form.Label class="block">Date of Birth</Form.Label>
+                    <Input type="date" {...props} bind:value={child.dob} />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
@@ -364,14 +353,12 @@
               <Form.Field
                 {form}
                 name="children[{index}].sex"
-                class="text-center">
+                class="flex-shrink-0">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block text-center">Gender</Form.Label>
+                    <Form.Label class="block">Gender</Form.Label>
                     <Select.Root type="single" bind:value={child.sex}>
-                      <Select.Trigger
-                        {...props}
-                        class="mx-auto justify-center text-center">
+                      <Select.Trigger {...props}>
                         {child.sex === 'male'
                           ? 'Male'
                           : child.sex === 'female'
@@ -390,6 +377,7 @@
             </div>
           </div>
         {/each}
+
         <Button
           type="button"
           variant="outline"
@@ -401,7 +389,6 @@
       </CardContent>
     </Card>
 
-    <!-- Pricing Tiers + Final Payment Amount -->
     <Card
       class="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
       <CardHeader>
@@ -411,7 +398,6 @@
         </CardTitle>
       </CardHeader>
       <CardContent class="space-y-6">
-        <!-- Pricing Tiers Display -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
           {#each pricingTiers as tier}
             <div
@@ -427,7 +413,6 @@
           {/each}
         </div>
 
-        <!-- Warning and Submit -->
         <div class="space-y-4">
           <Button
             type="submit"
@@ -447,7 +432,6 @@
   </form>
 </div>
 
-<!-- Warn Accidentally Single Parents -->
 <AlertDialog bind:open={showParentWarning}>
   <AlertDialogContent>
     <AlertDialogHeader>
