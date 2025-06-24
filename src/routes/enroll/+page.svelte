@@ -46,6 +46,13 @@
   const totalCost = $derived(
     numChildren === 1 ? 100 : numChildren === 2 ? 160 : 200,
   )
+
+  const isChildComplete = (child) => {
+    if (!child.name || !child.dob || !child.sex) return false
+    const year = new Date(child.dob).getFullYear()
+    return year >= 2000
+  }
+
   const fatherComplete = $derived(
     !!(
       $formData.father.name &&
@@ -61,6 +68,7 @@
     ),
   )
   const hasCompleteParent = $derived(fatherComplete || motherComplete)
+
   const pricingTiers = $derived([
     { count: 1, price: 100, label: '1 Child', isActive: numChildren === 1 },
     { count: 2, price: 160, label: '2 Children', isActive: numChildren === 2 },
@@ -282,12 +290,14 @@
       </CardContent>
     </Card>
 
+    <!-- Children Information -->
     <Card>
       <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <Baby class="w-5 h-5" /> Children Information
+        <CardTitle class="flex items-center gap-2 justify-center">
+          <Baby class="w-5 h-5" />
+          Children Information
         </CardTitle>
-        <p class="text-sm text-muted-foreground">
+        <p class="text-sm text-muted-foreground text-center">
           Add information for each child you wish to register.
         </p>
       </CardHeader>
@@ -296,46 +306,72 @@
           <div class="border rounded-lg p-4 space-y-4">
             <div class="flex items-center justify-between">
               <h4 class="font-medium">Child {index + 1}</h4>
-              {#if $formData.children.length > 1}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onclick={() => removeChild(index)}
-                  class="text-destructive hover:text-destructive">
-                  <Trash2 class="w-4 h-4" />
-                </Button>
-              {/if}
+              <div class="flex items-center gap-2">
+                {#if isChildComplete(child)}
+                  <Badge
+                    variant="secondary"
+                    class="text-xs bg-green-100 text-green-700 border-green-200">
+                    ✓ Complete
+                  </Badge>
+                {/if}
+                {#if $formData.children.length > 1}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onclick={() => removeChild(index)}
+                    class="text-destructive hover:text-destructive">
+                    <Trash2 class="w-4 h-4" />
+                  </Button>
+                {/if}
+              </div>
             </div>
             <div
-              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
-              <Form.Field {form} name="children[{index}].name">
+              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
+              <Form.Field
+                {form}
+                name="children[{index}].name"
+                class="text-center">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label>Name</Form.Label>
+                    <Form.Label class="block text-center">Name</Form.Label>
                     <Input
                       {...props}
                       bind:value={child.name}
-                      placeholder="Child's full name" />
+                      placeholder="Child's full name"
+                      class="text-center" />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
               </Form.Field>
-              <Form.Field {form} name="children[{index}].dob">
+              <Form.Field
+                {form}
+                name="children[{index}].dob"
+                class="text-center">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label>Date of Birth</Form.Label>
-                    <Input type="date" {...props} bind:value={child.dob} />
+                    <Form.Label class="block text-center"
+                      >Date of Birth</Form.Label>
+                    <Input
+                      type="date"
+                      {...props}
+                      bind:value={child.dob}
+                      class="justify-center text-center" />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
               </Form.Field>
-              <Form.Field {form} name="children[{index}].sex">
+              <Form.Field
+                {form}
+                name="children[{index}].sex"
+                class="text-center">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label>Gender</Form.Label>
-                    <Select.Root bind:value={child.sex} type="single">
-                      <Select.Trigger {...props}>
+                    <Form.Label class="block text-center">Gender</Form.Label>
+                    <Select.Root type="single" bind:value={child.sex}>
+                      <Select.Trigger
+                        {...props}
+                        class="mx-auto justify-center text-center">
                         {child.sex === 'male'
                           ? 'Male'
                           : child.sex === 'female'
@@ -365,7 +401,7 @@
       </CardContent>
     </Card>
 
-    <!-- Replace the existing pricing card and final payment card with this single card -->
+    <!-- Pricing Tiers + Final Payment Amount -->
     <Card
       class="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
       <CardHeader>
@@ -393,14 +429,6 @@
 
         <!-- Warning and Submit -->
         <div class="space-y-4">
-          {#if !hasCompleteParent}
-            <div
-              class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700">
-              ⚠️ Please provide complete information for at least one parent
-              (name, phone, and email).
-            </div>
-          {/if}
-
           <Button
             type="submit"
             size="lg"
@@ -419,6 +447,7 @@
   </form>
 </div>
 
+<!-- Warn Accidentally Single Parents -->
 <AlertDialog bind:open={showParentWarning}>
   <AlertDialogContent>
     <AlertDialogHeader>
