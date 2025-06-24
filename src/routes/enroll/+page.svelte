@@ -28,7 +28,7 @@
   const form = superForm(data.form, {
     dataType: 'json',
     onUpdated: ({ form }) => {
-      if (form.message === 'parent_warning') {
+      if (form.errors?.confirmParent) {
         showParentWarning = true
       }
       if (form.valid) {
@@ -39,7 +39,6 @@
 
   const { form: formData, enhance } = form
   let showParentWarning = $state(false)
-  let confirmParent = $state(false)
   let formEl: HTMLFormElement
 
   // Derived Values
@@ -86,7 +85,7 @@
       $formData.father.name && $formData.father.phone && $formData.father.email
     const motherFilled =
       $formData.mother.name && $formData.mother.phone && $formData.mother.email
-    if ((fatherFilled && !motherFilled) || (motherFilled && !fatherFilled)) {
+    if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
       event.preventDefault()
       showParentWarning = true
     }
@@ -94,9 +93,8 @@
 
   function proceedWithIncompleteInfo() {
     showParentWarning = false
-    confirmParent = true
+    $formData.confirmParent = true
     formEl.requestSubmit()
-    confirmParent = false
   }
 </script>
 
@@ -122,10 +120,6 @@
     use:enhance
     class="max-w-4xl mx-auto px-4 pb-16 space-y-8"
     onsubmit={handleSubmit}>
-    <input
-      type="hidden"
-      name="confirmParent"
-      value={confirmParent ? '1' : ''} />
     <Card class="border-primary/20">
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
