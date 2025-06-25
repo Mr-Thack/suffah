@@ -341,7 +341,7 @@
               <Form.Field
                 {form}
                 name="children[{index}].dob"
-                class="flex-shrink-0">
+                class="basis-full md:basis-auto flex-shrink-0">
                 <Form.Control>
                   {#snippet children({ props })}
                     <Form.Label class="block">Date of Birth</Form.Label>
@@ -353,7 +353,7 @@
               <Form.Field
                 {form}
                 name="children[{index}].sex"
-                class="flex-shrink-0">
+                class="basis-full md:basis-auto flex-shrink-0">
                 <Form.Control>
                   {#snippet children({ props })}
                     <Form.Label class="block">Gender</Form.Label>
