@@ -113,8 +113,6 @@
     $formData.confirmParent = true
     formEl.requestSubmit()
   }
-
-  export const prerender = false
 </script>
 
 <svelte:head>
