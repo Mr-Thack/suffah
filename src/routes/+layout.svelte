@@ -14,4 +14,6 @@
 
 <ModeWatcher />
 
-{@render children()}
+<div data-sveltekit-preload-code="viewport" data-sveltekit-preload-data="hover">
+  {@render children()}
+</div>
