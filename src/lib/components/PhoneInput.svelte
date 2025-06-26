@@ -342,11 +342,11 @@
 <Input
   bind:this={inputElement}
   type="tel"
+  autocomplete="tel"
   bind:value={displayValue}
   oninput={handleInput}
   onkeydown={handleKeyDown}
   onpaste={handlePaste}
   placeholder={dynamicPlaceholder()}
   class={className}
-  autocomplete="tel"
   {...restProps} />

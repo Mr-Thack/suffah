@@ -174,6 +174,7 @@
                   <Form.Label>Name</Form.Label>
                   <Input
                     {...props}
+                    autocomplete="name"
                     bind:value={$formData.father.name}
                     placeholder="Father's full name" />
                 {/snippet}
@@ -202,6 +203,7 @@
                   <Input
                     type="email"
                     {...props}
+                    autocomplete="email"
                     bind:value={$formData.father.email}
                     placeholder="father@example.com" />
                 {/snippet}
@@ -222,6 +224,7 @@
                   <Form.Label>Name</Form.Label>
                   <Input
                     {...props}
+                    autocomplete="name"
                     bind:value={$formData.mother.name}
                     placeholder="Mother's full name" />
                 {/snippet}
@@ -250,6 +253,7 @@
                   <Input
                     type="email"
                     {...props}
+                    autocomplete="email"
                     bind:value={$formData.mother.email}
                     placeholder="mother@example.com" />
                 {/snippet}
@@ -269,6 +273,7 @@
                 <Form.Label>Street Address</Form.Label>
                 <Input
                   {...props}
+                  autocomplete="street-address"
                   bind:value={$formData.address}
                   placeholder="123 Main Street" />
               {/snippet}
@@ -282,6 +287,7 @@
                   <Form.Label>City</Form.Label>
                   <Input
                     {...props}
+                    autocomplete="address-level2"
                     bind:value={$formData.city}
                     placeholder="City" />
                 {/snippet}
@@ -294,6 +300,7 @@
                   <Form.Label>ZIP Code</Form.Label>
                   <Input
                     {...props}
+                    autocomplete="postal-code"
                     bind:value={$formData.zipCode}
                     placeholder="12345" />
                 {/snippet}
