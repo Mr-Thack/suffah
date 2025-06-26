@@ -273,8 +273,25 @@
 
       if (oldValueWasEmpty || !oldValue.startsWith(`+${newCountryCode}`)) {
         // If we're transitioning from empty or changing country codes,
-        // position cursor at the end of the formatted string
-        newPosition = formatted.length
+        // position cursor after the last digit, not at the very end
+        const nationalDigits = cleanNumber.slice(newCountryCode.length)
+        let digitCount = 0
+
+        for (let i = 0; i < formatted.length; i++) {
+          if (/\d/.test(formatted[i])) {
+            digitCount++
+            // Position cursor after the last national digit
+            if (digitCount === newCountryCode.length + nationalDigits.length) {
+              newPosition = i + 1
+              break
+            }
+          }
+        }
+
+        // Fallback to end if we couldn't find the position
+        if (newPosition === undefined) {
+          newPosition = formatted.length
+        }
       } else {
         newPosition = calculateCursorPosition(
           oldValue,
@@ -318,7 +335,7 @@
   // Generate dynamic placeholder based on detected country code
   const dynamicPlaceholder = $derived(() => {
     const format = phoneFormats[countryCode] || '###-###-####'
-    return `+${countryCode} ${format.replace(/#/g, '0')}`
+    return `+${countryCode} ${format}`
   })
 </script>
 
