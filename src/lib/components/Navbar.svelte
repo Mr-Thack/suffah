@@ -2,6 +2,7 @@
   // SvelteKit imports for browser detection and page state
   import { browser } from '$app/environment'
   import { page } from '$app/stores'
+  import { afterNavigate } from '$app/navigation'
 
   // Icon imports from lucide-svelte
   import { Menu, Moon, Sun, X } from 'lucide-svelte'
@@ -14,11 +15,9 @@
   // Mode-watcher for theme toggling
   import { toggleMode } from 'mode-watcher'
 
-  // --- STATE MANAGEMENT (Svelte 5 Runes) ---
   let isMobileMenuOpen = $state(false)
   let currentPath = $state('')
 
-  // --- DATA ---
   const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/maktab', label: 'Maktab' },
@@ -31,26 +30,30 @@
     label: 'View Prayer Times',
   }
 
-  // --- SIDE EFFECTS ($effect) ---
   $effect(() => {
     currentPath = $page.url.pathname
   })
+
+  // Only close mobile menu if we've renavigated on browser
+  // Forcing from server shouldn't count
+  if (browser) {
+    afterNavigate(() => {
+      isMobileMenuOpen = false
+    })
+  }
 </script>
 
 <Collapsible.Root bind:open={isMobileMenuOpen} class="w-full">
   <header
-    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
-  >
+    class="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
     <div
-      class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between"
-    >
+      class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
       <div class="flex items-center gap-6">
         <a href="/" class="flex items-center space-x-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 256 256"
-            class="h-6 w-6"
-          >
+            class="h-6 w-6">
             <rect width="256" height="256" fill="none"></rect>
             <line
               x1="208"
@@ -61,8 +64,7 @@
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="16"
-            ></line>
+              stroke-width="16"></line>
             <line
               x1="192"
               y1="40"
@@ -72,8 +74,7 @@
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="16"
-            ></line>
+              stroke-width="16"></line>
           </svg>
           <span class="font-bold">Masjid Suffah</span>
         </a>
@@ -85,8 +86,7 @@
                 <NavigationMenu.Link
                   href={link.href}
                   active={currentPath === link.href}
-                  class="text-base font-medium"
-                >
+                  class="text-base font-medium">
                   {link.label}
                 </NavigationMenu.Link>
               </NavigationMenu.Item>
@@ -95,33 +95,30 @@
         </NavigationMenu.Root>
       </div>
 
-      <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-4 md:space-x-6">
         <Button onclick={toggleMode} variant="ghost" size="icon">
           <Sun
-            class="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"
-          />
+            class="absolute size-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <Moon
-            class="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"
-          />
+            class="absolute size-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <span class="sr-only">Toggle theme</span>
         </Button>
 
         <Button
           size="lg"
           href={actionLink.href}
-          class="hidden md:inline-flex text-base semi-bold"
-        >
+          class="hidden md:inline-flex text-base semi-bold">
           {actionLink.label}
         </Button>
 
         <div class="md:hidden">
           <Collapsible.Trigger asChild>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="icon">
+              <Button {...props} variant="ghost" size="bigicon">
                 {#if isMobileMenuOpen}
-                  <X class="h-5 w-5" />
+                  <X class="size-7" />
                 {:else}
-                  <Menu class="h-5 w-5" />
+                  <Menu class="size-7" />
                 {/if}
                 <span class="sr-only">Toggle Menu</span>
               </Button>
@@ -132,16 +129,14 @@
     </div>
 
     <Collapsible.Content
-      class="md:hidden w-full border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60"
-    >
+      class="md:hidden w-full border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div class="grid gap-4">
         {#each navLinks as link}
           <a
             href={link.href}
             class="text-lg text-center font-medium {currentPath === link.href
               ? 'text-foreground'
-              : 'text-muted-foreground'} hover:text-foreground transition-colors"
-          >
+              : 'text-muted-foreground'} hover:text-foreground transition-colors">
             {link.label}
           </a>
         {/each}
