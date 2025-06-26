@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { isValidPhoneNumber } from 'libphonenumber-js'
 import { superValidate } from 'sveltekit-superforms/server'
 import { zod } from 'sveltekit-superforms/adapters'
 import { fail } from '@sveltejs/kit'
@@ -46,7 +47,7 @@ const parentSchemaRaw = z
         path: ['phone'],
         message: 'Phone is required when providing any parent info',
       })
-    } else if (!/^[\+]?[(]?[\d\s\-\(\)]{10,}$/.test(phone)) {
+    } else if (!isValidPhoneNumber(phone)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['phone'],

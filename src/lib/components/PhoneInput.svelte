@@ -21,6 +21,12 @@
   let lastValidPhone = $state('')
   let inputElement: HTMLInputElement
 
+  // Function to get expected digit count for a country code
+  function getExpectedDigitCount(countryCode: string): number {
+    const format = phoneFormats[countryCode] || '###-###-####'
+    return (format.match(/#/g) || []).length
+  }
+
   // Function to detect country code from phone number
   function detectCountryCode(
     phoneNumber: string,
@@ -72,10 +78,19 @@
     const detectedCode = detectCountryCode(cleanNumber, currentCountryCode)
 
     // Get the national number (without country code)
-    const nationalNumber = cleanNumber.slice(detectedCode.length)
+    let nationalNumber = cleanNumber.slice(detectedCode.length)
 
     // Get the format pattern for this country
     const format = phoneFormats[detectedCode] || '###-###-####'
+    const expectedDigitCount = getExpectedDigitCount(detectedCode)
+
+    // Truncate national number to expected length to prevent extra digits
+    if (nationalNumber.length > expectedDigitCount) {
+      nationalNumber = nationalNumber.slice(0, expectedDigitCount)
+    }
+
+    // Recalculate clean number with truncated national number
+    const truncatedCleanNumber = detectedCode + nationalNumber
 
     // Apply formatting - always start with country code
     let formatted = `+${detectedCode}`
@@ -89,8 +104,11 @@
           formatted += nationalNumber[numberIndex]
           numberIndex++
         } else if (char !== '#') {
-          // Always add formatting characters when we have started adding digits
-          formatted += char
+          // Add formatting characters as long as we have digits to format
+          // or if we're at the beginning of the national number
+          if (numberIndex > 0 || nationalNumber.length > 0) {
+            formatted += char
+          }
         }
       }
     }
@@ -98,7 +116,7 @@
     return {
       formatted,
       countryCode: detectedCode,
-      cleanNumber: cleanNumber,
+      cleanNumber: truncatedCleanNumber,
     }
   }
 

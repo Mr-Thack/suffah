@@ -53,6 +53,10 @@
     return year >= 2000
   }
 
+  const childrenComplete = $derived(
+    $formData.children.length > 0 && $formData.children.every(isChildComplete),
+  )
+
   const fatherComplete = $derived(
     !!(
       $formData.father.name &&
@@ -70,7 +74,9 @@
   const addressComplete = $derived(
     !!($formData.address && $formData.city && $formData.zipCode),
   )
-  const hasCompleteParent = $derived(fatherComplete || motherComplete)
+  const completedForm = $derived(
+    (fatherComplete || motherComplete) && addressComplete && childrenComplete,
+  )
 
   const pricingTiers = $derived([
     { count: 1, price: 100, label: '1 Child', isActive: numChildren === 1 },
@@ -107,6 +113,14 @@
     $formData.confirmParent = true
     formEl.requestSubmit()
   }
+
+  $effect(() => {
+    console.log(
+      $formData.father.name,
+      $formData.father.phone,
+      $formData.father.email,
+    )
+  })
 </script>
 
 <svelte:head>
@@ -173,7 +187,7 @@
                   <Form.Label class="flex items-center gap-1">
                     <Phone class="w-3 h-3" /> Phone
                   </Form.Label>
-                  <PhoneInput {...props} bind:number={$formData.father.phone} />
+                  <PhoneInput {...props} bind:phone={$formData.father.phone} />
                 {/snippet}
               </Form.Control>
               <Form.FieldErrors />
@@ -221,7 +235,7 @@
                   <Form.Label class="flex items-center gap-1">
                     <Phone class="w-3 h-3" /> Phone
                   </Form.Label>
-                  <PhoneInput {...props} bind:number={$formData.mother.phone} />
+                  <PhoneInput {...props} bind:phone={$formData.mother.phone} />
                 {/snippet}
               </Form.Control>
               <Form.FieldErrors />
@@ -416,7 +430,7 @@
             type="submit"
             size="lg"
             class="w-full text-lg py-6"
-            disabled={!hasCompleteParent}>
+            disabled={!completedForm}>
             Continue to Payment • ${totalCost}
           </Button>
 

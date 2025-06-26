@@ -37,6 +37,7 @@
 		"vite-plugin-devtools-json": "^0.2.0"
 	},
 	"dependencies": {
+		"libphonenumber-js": "^1.12.9",
 		"lucide-svelte": "^0.522.0",
 		"maska": "^3.1.1",
 		"mode-watcher": "^1.0.8",
