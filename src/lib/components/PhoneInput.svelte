@@ -20,6 +20,7 @@
   let displayValue = $state('')
   let lastValidPhone = $state('')
   let inputElement: HTMLInputElement
+  let userHasStartedTyping = $state(false)
 
   // Function to get expected digit count for a country code
   function getExpectedDigitCount(countryCode: string): number {
@@ -31,10 +32,22 @@
   function detectCountryCode(
     phoneNumber: string,
     currentCountryCode: string = '1',
+    respectDefault: boolean = true,
   ): string {
     const cleanNumber = phoneNumber.replace(/\D/g, '')
 
     if (!cleanNumber) return currentCountryCode
+
+    // If we should respect the default country code and user just started typing,
+    // only detect country code if the input clearly starts with a different one
+    if (respectDefault && !userHasStartedTyping) {
+      // Check if the input starts with a plus or is clearly an international format
+      const startsWithPlus = phoneNumber.trim().startsWith('+')
+      if (!startsWithPlus) {
+        // If no plus and we have a default country code, assume national format
+        return currentCountryCode
+      }
+    }
 
     // Check for country codes by length (longer codes first to avoid false matches)
     const sortedCodes = Object.keys(phoneFormats).sort(
@@ -47,10 +60,12 @@
       }
     }
 
-    // If we have partial input, check if it could be the start of a country code
-    for (const code of sortedCodes) {
-      if (code.startsWith(cleanNumber)) {
-        return cleanNumber // Return the partial code we're typing
+    // If we have partial input and it's clearly international format (starts with +)
+    if (phoneNumber.trim().startsWith('+')) {
+      for (const code of sortedCodes) {
+        if (code.startsWith(cleanNumber)) {
+          return cleanNumber // Return the partial code we're typing
+        }
       }
     }
 
@@ -62,12 +77,14 @@
   function formatPhoneNumber(
     value: string,
     currentCountryCode: string = '1',
+    respectDefault: boolean = true,
   ): {
     formatted: string
     countryCode: string
     cleanNumber: string
   } {
-    // Remove all non-numeric characters
+    // Remove all non-numeric characters except + at the start
+    const hasPlus = value.trim().startsWith('+')
     const cleanNumber = value.replace(/\D/g, '')
 
     if (!cleanNumber) {
@@ -75,10 +92,28 @@
     }
 
     // Detect country code
-    const detectedCode = detectCountryCode(cleanNumber, currentCountryCode)
+    const detectedCode = detectCountryCode(
+      value,
+      currentCountryCode,
+      respectDefault,
+    )
 
     // Get the national number (without country code)
-    let nationalNumber = cleanNumber.slice(detectedCode.length)
+    let nationalNumber = cleanNumber
+
+    // Only remove country code digits if we actually detected a different country code
+    // or if the input clearly starts with a country code
+    if (
+      hasPlus ||
+      detectedCode !== currentCountryCode ||
+      cleanNumber.startsWith(detectedCode)
+    ) {
+      nationalNumber = cleanNumber.slice(detectedCode.length)
+    } else {
+      // If we're using the default country code and input doesn't start with +,
+      // treat all digits as national number
+      nationalNumber = cleanNumber
+    }
 
     // Get the format pattern for this country
     const format = phoneFormats[detectedCode] || '###-###-####'
@@ -89,7 +124,7 @@
       nationalNumber = nationalNumber.slice(0, expectedDigitCount)
     }
 
-    // Recalculate clean number with truncated national number
+    // Recalculate clean number with country code + national number
     const truncatedCleanNumber = detectedCode + nationalNumber
 
     // Apply formatting - always start with country code
@@ -187,7 +222,7 @@
               formatted,
               countryCode: newCountryCode,
               cleanNumber,
-            } = formatPhoneNumber(newValue, countryCode)
+            } = formatPhoneNumber(newValue, countryCode, false)
 
             displayValue = formatted
             countryCode = newCountryCode
@@ -215,11 +250,16 @@
     const cursorPosition = target.selectionStart || 0
     const oldValue = displayValue
 
+    // Mark that user has started typing
+    if (!userHasStartedTyping && target.value.length > 0) {
+      userHasStartedTyping = true
+    }
+
     const {
       formatted,
       countryCode: newCountryCode,
       cleanNumber,
-    } = formatPhoneNumber(target.value, countryCode)
+    } = formatPhoneNumber(target.value, countryCode, !userHasStartedTyping)
 
     // Update bound values
     displayValue = formatted
@@ -241,11 +281,15 @@
   function handlePaste(event: ClipboardEvent) {
     event.preventDefault()
     const pastedText = event.clipboardData?.getData('text') || ''
+
+    // Mark that user has started typing
+    userHasStartedTyping = true
+
     const {
       formatted,
       countryCode: newCountryCode,
       cleanNumber,
-    } = formatPhoneNumber(pastedText, countryCode)
+    } = formatPhoneNumber(pastedText, countryCode, false)
 
     displayValue = formatted
     countryCode = newCountryCode
@@ -255,7 +299,7 @@
   // Initialize display value if phone prop is provided
   $effect(() => {
     if (phone && phone !== lastValidPhone) {
-      const { formatted } = formatPhoneNumber(phone)
+      const { formatted } = formatPhoneNumber(phone, countryCode, false)
       displayValue = formatted
       lastValidPhone = phone
     }
