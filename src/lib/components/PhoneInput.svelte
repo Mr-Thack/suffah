@@ -249,6 +249,7 @@
     const target = event.target as HTMLInputElement
     const cursorPosition = target.selectionStart || 0
     const oldValue = displayValue
+    const oldValueWasEmpty = displayValue === ''
 
     // Mark that user has started typing
     if (!userHasStartedTyping && target.value.length > 0) {
@@ -268,11 +269,20 @@
 
     // Restore cursor position accounting for formatting changes
     requestAnimationFrame(() => {
-      const newPosition = calculateCursorPosition(
-        oldValue,
-        formatted,
-        cursorPosition,
-      )
+      let newPosition: number
+
+      if (oldValueWasEmpty || !oldValue.startsWith(`+${newCountryCode}`)) {
+        // If we're transitioning from empty or changing country codes,
+        // position cursor at the end of the formatted string
+        newPosition = formatted.length
+      } else {
+        newPosition = calculateCursorPosition(
+          oldValue,
+          formatted,
+          cursorPosition,
+        )
+      }
+
       target.setSelectionRange(newPosition, newPosition)
     })
   }
