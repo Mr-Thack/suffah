@@ -81,8 +81,8 @@
   <div
     class="w-3 h-3 bg-primary rounded-full"
     class:bg-accent={emphasize}
-    class:bg-primary={!emphasize}
-  ></div>
+    class:bg-primary={!emphasize}>
+  </div>
 {/snippet}
 
 <!-- Main Container -->
@@ -115,8 +115,7 @@
           </p>
           <p class="text-muted-foreground leading-relaxed">
             The <span class="font-medium text-foreground"
-              >'tarbiyyah' تربية</span
-            > (upbringing) of the students is highly emphasized.
+              >'tarbiyyah' تربية</span> (upbringing) of the students is highly emphasized.
           </p>
         </CardContent>
       </Card>
@@ -194,19 +193,21 @@
               {/each}
             </div>
           </div>
-          <Button size="lg" class="w-full text-lg font-semibold" href="/enroll">
+          <Button
+            size="lg"
+            class="w-full text-lg font-semibold"
+            href="/enroll"
+            data-sveltekit-preload-code="eager">
             <svg
               class="w-5 h-5 mr-2"
               fill="none"
               stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+              viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M12 4v16m8-8H4"
-              ></path>
+                d="M12 4v16m8-8H4"></path>
             </svg>
             Enroll Now
           </Button>

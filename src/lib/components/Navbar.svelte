@@ -106,6 +106,7 @@
 
         <Button
           size="lg"
+          data-sveltekit-preload-code="eager"
           href={actionLink.href}
           class="hidden md:inline-flex text-base semi-bold">
           {actionLink.label}
@@ -141,7 +142,10 @@
           </a>
         {/each}
         <hr class="my-2" />
-        <Button href={actionLink.href} class="w-full text-base font-semibold">
+        <Button
+          data-sveltekit-preload-code="eager"
+          href={actionLink.href}
+          class="w-full text-base font-semibold">
           {actionLink.label}
         </Button>
       </div>
