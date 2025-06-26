@@ -113,14 +113,6 @@
     $formData.confirmParent = true
     formEl.requestSubmit()
   }
-
-  $effect(() => {
-    console.log(
-      $formData.father.name,
-      $formData.father.phone,
-      $formData.father.email,
-    )
-  })
 </script>
 
 <svelte:head>
