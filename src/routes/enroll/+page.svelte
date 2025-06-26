@@ -23,6 +23,7 @@
     AlertDialogTitle,
   } from '$lib/components/ui/alert-dialog'
   import { Plus, Trash2, Users, Baby, MapPin, Mail, Phone } from 'lucide-svelte'
+  import PhoneInput from '$lib/components/PhoneInput.svelte'
 
   const { data } = $props()
   const form = superForm(data.form, {
@@ -41,7 +42,6 @@
   let showParentWarning = $state(false)
   let formEl: HTMLFormElement
 
-  // Derived Values
   const numChildren = $derived($formData.children.length)
   const totalCost = $derived(
     numChildren === 1 ? 100 : numChildren === 2 ? 160 : 200,
@@ -101,6 +101,10 @@
       showParentWarning = true
     }
   }
+
+  $effect(() => {
+    console.log($formData.father.phone)
+  })
 
   function proceedWithIncompleteInfo() {
     showParentWarning = false
@@ -166,20 +170,19 @@
               </Form.Control>
               <Form.FieldErrors />
             </Form.Field>
+
             <Form.Field {form} name="father.phone">
               <Form.Control>
                 {#snippet children({ props })}
                   <Form.Label class="flex items-center gap-1">
                     <Phone class="w-3 h-3" /> Phone
                   </Form.Label>
-                  <Input
-                    {...props}
-                    bind:value={$formData.father.phone}
-                    placeholder="(555) 123-4567" />
+                  <PhoneInput {form} bind:number={$formData.mother.phone} />
                 {/snippet}
               </Form.Control>
               <Form.FieldErrors />
             </Form.Field>
+
             <Form.Field {form} name="father.email">
               <Form.Control>
                 {#snippet children({ props })}
