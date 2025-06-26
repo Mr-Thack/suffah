@@ -102,10 +102,6 @@
     }
   }
 
-  $effect(() => {
-    console.log($formData.father.phone)
-  })
-
   function proceedWithIncompleteInfo() {
     showParentWarning = false
     $formData.confirmParent = true
@@ -177,7 +173,7 @@
                   <Form.Label class="flex items-center gap-1">
                     <Phone class="w-3 h-3" /> Phone
                   </Form.Label>
-                  <PhoneInput {form} bind:number={$formData.mother.phone} />
+                  <PhoneInput {...props} bind:number={$formData.father.phone} />
                 {/snippet}
               </Form.Control>
               <Form.FieldErrors />
@@ -218,20 +214,19 @@
               </Form.Control>
               <Form.FieldErrors />
             </Form.Field>
+
             <Form.Field {form} name="mother.phone">
               <Form.Control>
                 {#snippet children({ props })}
                   <Form.Label class="flex items-center gap-1">
                     <Phone class="w-3 h-3" /> Phone
                   </Form.Label>
-                  <Input
-                    {...props}
-                    bind:value={$formData.mother.phone}
-                    placeholder="(555) 123-4567" />
+                  <PhoneInput {...props} bind:number={$formData.mother.phone} />
                 {/snippet}
               </Form.Control>
               <Form.FieldErrors />
             </Form.Field>
+
             <Form.Field {form} name="mother.email">
               <Form.Control>
                 {#snippet children({ props })}
