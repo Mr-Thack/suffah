@@ -21,18 +21,18 @@ export const db: SupabaseClient = createClient(
   },
 )
 
-export async function isUserSuperAdmin() {
+export async function isSuperAdmin() {
   // get the current user
   const {
     data: { session },
     error,
-  } = await supabase.auth.getSession()
+  } = await db.auth.getSession()
 
   if (error || !session) {
     return false
   }
 
-  // Supabase v2: session.user.user_metadata holds top‑level claims
+  // session.user.user_metadata holds top‑level claims
   const { is_super_admin } = session.user.user_metadata as {
     is_super_admin?: boolean
   }
