@@ -40,6 +40,7 @@
 		"@supabase/supabase-js": "^2.50.2",
 		"@zxcvbn-ts/core": "^3.0.4",
 		"@zxcvbn-ts/language-common": "^3.0.4",
+		"@zxcvbn-ts/language-en": "^3.0.2",
 		"libphonenumber-js": "^1.12.9",
 		"lucide-svelte": "^0.522.0",
 		"maska": "^3.1.1",

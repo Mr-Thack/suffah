@@ -9,13 +9,8 @@
   import { Eye, EyeOff } from 'lucide-svelte'
   import { toast } from 'svelte-sonner'
   import { goto } from '$app/navigation'
-  import { zxcvbn, zxcvbnOptions } from '@zxcvbn-ts/core'
-  import * as zxcvbnCommonPackage from '@zxcvbn-ts/language-common'
 
-  // configure zxcvbn options once
-  zxcvbnOptions.setOptions({
-    ...zxcvbnCommonPackage,
-  })
+  import type { ZxcvbnResult } from '@zxcvbn-ts/core'
 
   // Generate unique IDs for form controls
   const formId = 'admin-singup'
@@ -35,13 +30,59 @@
   let showPassword1 = $state(false)
   let showPassword2 = $state(false)
 
-  // reactive effect: recalculate strength on password1 change
+  let zxcvbnLoaded = $state(false)
+  let zxcvbnFunction: ((password: string) => ZxcvbnResult) | null = null
+
+  // Load zxcvbn only when needed
+  async function loadZxcvbn() {
+    if (zxcvbnLoaded) return
+
+    try {
+      const [{ zxcvbn, zxcvbnOptions }, commonModule, enModule] =
+        await Promise.all([
+          import('@zxcvbn-ts/core'),
+          import('@zxcvbn-ts/language-common'),
+          import('@zxcvbn-ts/language-en'),
+        ])
+
+      // Use only essential dictionaries - you can customize this
+      const dictionary = {
+        ...commonModule.dictionary,
+        // Only include essential EN dictionaries to reduce size
+        passwords: enModule.dictionary.passwords,
+        commonWords: enModule.dictionary.commonWords,
+        // Skip names, surnames, etc. if you want smaller bundle
+      }
+
+      zxcvbnOptions.setOptions({ dictionary })
+      zxcvbnFunction = zxcvbn
+      zxcvbnLoaded = true
+    } catch (error) {
+      console.error('Failed to load zxcvbn:', error)
+      // Fallback to simple validation
+      zxcvbnFunction = (password: string) =>
+        ({
+          score: password.length >= 12 ? 3 : password.length >= 8 ? 2 : 1,
+          feedback: { warning: '', suggestions: [] },
+        }) as ZxcvbnResult
+      zxcvbnLoaded = true
+    }
+  }
+
+  // Only check strength when user is actively typing
+  let strengthCheckTimeout: NodeJS.Timeout
   $effect(() => {
-    if (password1) {
-      const result = zxcvbn(password1)
-      score = result.score
-      feedback = result.feedback
-    } else {
+    if (password1 && zxcvbnFunction) {
+      clearTimeout(strengthCheckTimeout)
+      strengthCheckTimeout = setTimeout(() => {
+        const result = zxcvbnFunction!(password1)
+        score = result.score
+        feedback = {
+          warning: result.feedback.warning || '',
+          suggestions: result.feedback.suggestions || [],
+        }
+      }, 50) // Debounce for 50ms
+    } else if (!password1) {
       score = 0
       feedback = { warning: '', suggestions: [] }
     }
@@ -55,6 +96,13 @@
       session = data.session
     }
   })
+
+  // Load zxcvbn when password field is focused
+  async function handlePasswordFocus() {
+    if (!zxcvbnLoaded) {
+      await loadZxcvbn()
+    }
+  }
 
   async function setPassword() {
     errorMsg = ''
@@ -180,13 +228,20 @@
               placeholder="Choose a password"
               aria-invalid={score < 2 && password1 ? 'true' : 'false'}
               autocomplete="new-password"
-              class="mt-1 w-full pr-10" />
+              class="mt-1 w-full pr-10"
+              onfocus={handlePasswordFocus} />
             {@render passwordToggleButton(
               showPassword1,
               togglePassword1Visibility,
             )}
           </div>
-          {@render passwordStrengthIndicator(score, feedback)}
+          {#if zxcvbnLoaded}
+            {@render passwordStrengthIndicator(score, feedback)}
+          {:else if password1}
+            <p class="text-sm text-muted-foreground mt-1">
+              Loading strength checker...
+            </p>
+          {/if}
         </div>
 
         <div>
