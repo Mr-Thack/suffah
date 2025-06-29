@@ -10,18 +10,35 @@ if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
   )
 }
 
-export const db: SupabaseClient = createClient(
-  PUBLIC_SUPABASE_URL,
-  PUBLIC_SUPABASE_ANON_KEY,
-  {
+// Simple singleton pattern
+function createSupabaseClient(): SupabaseClient {
+  return createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
     auth: {
       detectSessionInUrl: true,
       persistSession: true,
     },
-  },
-)
+  })
+}
+
+// Create singleton instance
+let supabaseInstance: SupabaseClient | undefined
+
+// Check if db already exists before creating a new connection
+function getSupabaseClient(): SupabaseClient {
+  if (!supabaseInstance) {
+    supabaseInstance = createSupabaseClient()
+  }
+  return supabaseInstance
+}
+
+export const db: SupabaseClient = getSupabaseClient()
 
 export async function isSuperAdmin() {
+  const user = await getUserInfo()
+  return !!user.is_super_admin
+}
+
+export async function getUserInfo() {
   // get the current user
   const {
     data: { session },
@@ -32,10 +49,6 @@ export async function isSuperAdmin() {
     return false
   }
 
-  // session.user.user_metadata holds top‑level claims
-  const { is_super_admin } = session.user.user_metadata as {
-    is_super_admin?: boolean
-  }
-
-  return is_super_admin === true
+  console.log('User Info:', session.user)
+  return session.user
 }
