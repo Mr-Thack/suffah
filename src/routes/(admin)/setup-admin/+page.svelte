@@ -6,9 +6,9 @@
   import { Label } from '$lib/components/ui/label'
   import { Button } from '$lib/components/ui/button'
   import { Progress } from '$lib/components/ui/progress'
-  import { Eye, EyeOff } from 'lucide-svelte'
   import { toast } from 'svelte-sonner'
   import { goto } from '$app/navigation'
+  import PasswordInput from '$lib/components/PasswordInput.svelte'
 
   import type { ZxcvbnResult } from '@zxcvbn-ts/core'
 
@@ -220,21 +220,14 @@
             class="block text-sm font-medium text-muted-foreground">
             New Password
           </Label>
-          <div class="relative">
-            <Input
-              type={showPassword1 ? 'text' : 'password'}
-              id={password1Id}
-              bind:value={password1}
-              placeholder="Choose a password"
-              aria-invalid={score < 2 && password1 ? 'true' : 'false'}
-              autocomplete="new-password"
-              class="mt-1 w-full pr-10"
-              onfocus={handlePasswordFocus} />
-            {@render passwordToggleButton(
-              showPassword1,
-              togglePassword1Visibility,
-            )}
-          </div>
+          <PasswordInput
+            id={password1Id}
+            bind:value={password1}
+            placeholder="Choose a password"
+            autocomplete="new-password"
+            invalid={score < 2 && password1}
+            on:focus={handlePasswordFocus} />
+
           {#if zxcvbnLoaded}
             {@render passwordStrengthIndicator(score, feedback)}
           {:else if password1}
@@ -250,22 +243,12 @@
             class="block text-sm font-medium text-muted-foreground">
             Confirm Password
           </Label>
-          <div class="relative">
-            <Input
-              type={showPassword2 ? 'text' : 'password'}
-              id={password2Id}
-              bind:value={password2}
-              placeholder="Re-enter password"
-              aria-invalid={password1 !== password2 && password2
-                ? 'true'
-                : 'false'}
-              class="mt-1 w-full pr-10"
-              autocomplete="new-password" />
-            {@render passwordToggleButton(
-              showPassword2,
-              togglePassword2Visibility,
-            )}
-          </div>
+          <PasswordInput
+            id={password2Id}
+            bind:value={password2}
+            placeholder="Re-enter password"
+            autocomplete="new-password"
+            invalid={password1 !== password2 && password2} />
         </div>
 
         {#if errorMsg}
