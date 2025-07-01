@@ -1,0 +1,161 @@
+<script lang="ts">
+  import { onMount } from 'svelte'
+  import { db } from '$lib/db.ts'
+  import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
+  import { Button, buttonVariants } from '$lib/components/ui/button'
+  import * as AlertDialog from '$lib/components/ui/alert-dialog'
+  import * as Select from '$lib/components/ui/select'
+  import { toast } from 'svelte-sonner'
+
+  // State
+  let terms = $state([] as { id: number; name: string }[])
+  let activeTermId: number | null = $state(null)
+  let loading = $state(false)
+
+  let newName = $state('')
+  let newStart = $state('')
+  let newEnd = $state('')
+  let adding = $state(false)
+
+  let dialogOpen = $state(false)
+
+  // Load existing terms and active term
+  async function loadData() {
+    const { data: termData, error: termErr } = await db
+      .from('maktab_term')
+      .select('id, name')
+      .order('id', { ascending: true })
+    if (termErr) {
+      toast.error('Error loading terms: ' + termErr.message)
+      return
+    }
+    terms = termData ?? []
+
+    const { data: cfgData, error: cfgErr } = await db
+      .from('config')
+      .select('value')
+      .eq('key', 'active_term_id')
+      .single()
+    if (cfgErr && cfgErr.code !== 'PGRST116') {
+      toast.error('Error loading active term: ' + cfgErr.message)
+      return
+    }
+    activeTermId = cfgData?.value ? parseInt(cfgData.value) : null
+  }
+
+  onMount(loadData)
+
+  // Add a new term
+  async function handleAddTerm() {
+    if (!newName || !newStart || !newEnd) {
+      toast.error('Please fill all fields')
+      return
+    }
+    adding = true
+    const { error } = await db
+      .from('maktab_term')
+      .insert({ name: newName, start_date: newStart, end_date: newEnd })
+    adding = false
+    if (error) {
+      toast.error('Failed to add term: ' + error.message)
+    } else {
+      toast.success('Term added')
+      newName = ''
+      newStart = ''
+      newEnd = ''
+      await loadData()
+    }
+  }
+
+  // Save active term
+  async function handleSaveActive() {
+    if (activeTermId === null) {
+      toast.error('Select a term first')
+      return
+    }
+    loading = true
+    const { error } = await db
+      .from('config')
+      .upsert({ key: 'active_term_id', value: String(activeTermId) })
+    loading = false
+    if (error) {
+      toast.error('Failed to save active term: ' + error.message)
+    } else {
+      toast.success('Active term set')
+    }
+  }
+</script>
+
+<div class="space-y-6 p-4">
+  <h1 class="text-2xl font-bold">Manage School Terms</h1>
+
+  <!-- Add Term Form -->
+  <div class="space-y-4 p-4 border rounded">
+    <h2 class="text-xl font-semibold">Add New Term</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <Label for="term-name">Name</Label>
+        <Input
+          id="term-name"
+          bind:value={newName}
+          placeholder="e.g., Summer 2025" />
+      </div>
+      <div>
+        <Label for="start-date">Start Date</Label>
+        <Input id="start-date" type="date" bind:value={newStart} />
+      </div>
+      <div>
+        <Label for="end-date">End Date</Label>
+        <Input id="end-date" type="date" bind:value={newEnd} />
+      </div>
+    </div>
+    <Button onclick={handleAddTerm} disabled={adding} class="mt-4">
+      {#if adding}Adding…{:else}Add Term{/if}
+    </Button>
+  </div>
+
+  <!-- Select Active Term -->
+  <div class="space-y-2 p-4 border rounded">
+    <h2 class="text-xl font-semibold">Set Active Term</h2>
+    <Select.Root
+      type="single"
+      bind:value={activeTermId}
+      onopenChange={() => (dialogOpen = true)}>
+      <Select.Trigger class="w-full">
+        {#if activeTermId}
+          {terms.find((t) => t.id === activeTermId)?.name}
+        {:else}
+          Select a term…
+        {/if}
+      </Select.Trigger>
+      <Select.Content>
+        {#each terms as term}
+          <Select.Item value={term.id}>{term.name}</Select.Item>
+        {/each}
+      </Select.Content>
+    </Select.Root>
+    <Button
+      onclick={handleSaveActive}
+      disabled={loading || activeTermId === null}
+      class="mt-4">
+      {#if loading}Saving…{:else}Save Active Term{/if}
+    </Button>
+  </div>
+
+  <!-- Alert Dialog to discourage edits -->
+  <AlertDialog.Root bind:open={dialogOpen}>
+    <AlertDialog.Content>
+      <AlertDialog.Header>
+        <AlertDialog.Title>Read Only</AlertDialog.Title>
+        <AlertDialog.Description>
+          Terms cannot be edited once created. If you need to change dates or
+          names, please delete and re-create the term instead.
+        </AlertDialog.Description>
+      </AlertDialog.Header>
+      <AlertDialog.Footer>
+        <AlertDialog.Cancel>OK</AlertDialog.Cancel>
+      </AlertDialog.Footer>
+    </AlertDialog.Content>
+  </AlertDialog.Root>
+</div>
