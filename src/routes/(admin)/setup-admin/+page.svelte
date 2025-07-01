@@ -46,15 +46,16 @@
         ])
 
       // Use only essential dictionaries - you can customize this
-      const dictionary = {
-        ...commonModule.dictionary,
-        // Only include essential EN dictionaries to reduce size
-        passwords: enModule.dictionary.passwords,
-        commonWords: enModule.dictionary.commonWords,
-        // Skip names, surnames, etc. if you want smaller bundle
+      const options = {
+        dictionary: {
+          ...commonModule.dictionary,
+          ...enModule.dictionary,
+        },
+        graphs: commonModule.adjacencyGraphs,
+        translations: enModule.translations,
       }
 
-      zxcvbnOptions.setOptions({ dictionary })
+      zxcvbnOptions.setOptions(options)
       zxcvbnFunction = zxcvbn
       zxcvbnLoaded = true
     } catch (error) {
@@ -95,7 +96,9 @@
     } else {
       session = data.session
       if (!zxcvbnLoaded) {
-        await loadZxcvbn()
+        setTimeout(async () => {
+          await loadZxcvbn()
+        }, 250)
       }
     }
   })
