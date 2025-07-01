@@ -94,15 +94,11 @@
       errorMsg = error.message
     } else {
       session = data.session
+      if (!zxcvbnLoaded) {
+        await loadZxcvbn()
+      }
     }
   })
-
-  // Load zxcvbn when password field is focused
-  async function handlePasswordFocus() {
-    if (!zxcvbnLoaded) {
-      await loadZxcvbn()
-    }
-  }
 
   async function setPassword() {
     errorMsg = ''
@@ -225,8 +221,7 @@
             bind:value={password1}
             placeholder="Choose a password"
             autocomplete="new-password"
-            invalid={score < 2 && password1}
-            on:focus={handlePasswordFocus} />
+            invalid={score < 2 && password1} />
 
           {#if zxcvbnLoaded}
             {@render passwordStrengthIndicator(score, feedback)}
