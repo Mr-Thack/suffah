@@ -3,13 +3,9 @@ import { isValidPhoneNumber } from 'libphonenumber-js'
 import { superValidate } from 'sveltekit-superforms/server'
 import { zod } from 'sveltekit-superforms/adapters'
 import { fail } from '@sveltejs/kit'
+import { db } from '$lib/db'
 
-// Basically, Zod doesn't have a way of doing:
-// EITHER:
-//  1. All fields EMPTY
-//  2. All fields FULL
-//
-// So, we're doing it ourselves
+// Zod schemas for parents and children
 const parentSchemaRaw = z
   .object({
     name: z.string().optional(),
@@ -22,54 +18,48 @@ const parentSchemaRaw = z
     const email = obj.email?.trim() ?? ''
     const anyProvided = !!(name || phone || email)
 
-    if (!anyProvided) {
-      // all empty: okay, skip validation
-      return
-    }
-    // else: require all three
-    if (!name) {
+    if (!anyProvided) return
+
+    if (!name)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['name'],
         message: 'Name is required when providing any parent info',
       })
-    } else if (name.length < 1) {
-      // probably redundant since trimmed, but you could check length>=1
+    else if (name.length < 1)
       ctx.addIssue({
         code: z.ZodIssueCode.too_small,
         path: ['name'],
         message: 'Name is required',
       })
-    }
-    if (!phone) {
+
+    if (!phone)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['phone'],
         message: 'Phone is required when providing any parent info',
       })
-    } else if (!isValidPhoneNumber(phone)) {
+    else if (!isValidPhoneNumber(phone))
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['phone'],
         message: 'Please enter a valid phone number',
       })
-    }
-    if (!email) {
+
+    if (!email)
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['email'],
         message: 'Email is required when providing any parent info',
       })
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['email'],
         message: 'Please enter a valid email address',
       })
-    }
   })
 
-// Helper to check if a parent object has all required fields non-empty
 function isDone(p: Partial<{ name: string; phone: string; email: string }>) {
   return !!(p.name && p.phone && p.email)
 }
@@ -96,19 +86,13 @@ const maktabSchema = z
       .min(1, 'At least one child must be registered'),
     confirmParent: z.boolean().optional(),
   })
-  .refine(
-    (data) => {
-      return isDone(data.father) || isDone(data.mother)
-    },
-    {
-      message: "At least one parent's complete information must be provided",
-      path: ['father'],
-    },
-  )
+  .refine((data) => isDone(data.father) || isDone(data.mother), {
+    message: "At least one parent's complete information must be provided",
+    path: ['father'],
+  })
   .superRefine((data, ctx) => {
     const fatherComplete = isDone(data.father)
     const motherComplete = isDone(data.mother)
-
     if (
       (fatherComplete || motherComplete) &&
       !(fatherComplete && motherComplete) &&
@@ -123,6 +107,7 @@ const maktabSchema = z
     }
   })
 
+// Load: initialize empty form
 export const load = async () => {
   const form = await superValidate(zod(maktabSchema), {
     defaults: {
@@ -138,16 +123,53 @@ export const load = async () => {
   return { form }
 }
 
+// Actions: validate, fetch term, insert, return
 export const actions = {
   default: async ({ request }) => {
+    // 1) Validate incoming data
     const form = await superValidate(request, zod(maktabSchema))
-
     if (!form.valid) {
-      console.warn('Form issue:', form)
+      console.warn('Validation failed:', form)
       return fail(400, { form })
     }
 
-    console.log('Form submitted successfully:', form.data)
+    // 2) Fetch active term from config
+    const { data: cfg, error: cfgErr } = await db
+      .from('config')
+      .select('value')
+      .eq('key', 'active_term_id')
+      .single()
+    if (cfgErr || !cfg?.value) {
+      console.error('Error fetching active term:', cfgErr)
+      return fail(500, { message: 'Unable to determine current term.' })
+    }
+    const termId = Number(cfg.value)
+
+    // 3) Build payload for insertion
+    const payload = {
+      term_id: termId,
+      father_name: form.data.father.name || null,
+      father_phone: form.data.father.phone || null,
+      father_email: form.data.father.email || null,
+      mother_name: form.data.mother.name || null,
+      mother_phone: form.data.mother.phone || null,
+      mother_email: form.data.mother.email || null,
+      address: form.data.address,
+      city: form.data.city,
+      zip_code: form.data.zipCode,
+      children: form.data.children,
+    }
+
+    // 4) Insert into Supabase
+    const { error: insertErr } = await db
+      .from('maktab_registrations')
+      .insert(payload)
+    if (insertErr) {
+      console.error('Insert error:', insertErr)
+      return fail(500, { message: insertErr.message })
+    }
+
+    // 5) Success
     return { form }
   },
 }
