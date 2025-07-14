@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { isValidPhoneNumber } from 'libphonenumber-js'
-import { superValidate } from 'sveltekit-superforms/server'
+import { message, superValidate } from 'sveltekit-superforms/server'
 import { zod } from 'sveltekit-superforms/adapters'
 import { fail } from '@sveltejs/kit'
 import { db } from '$lib/db'
@@ -130,7 +130,7 @@ export const actions = {
     const form = await superValidate(request, zod(maktabSchema))
     if (!form.valid) {
       console.warn('Validation failed:', form)
-      return fail(400, { form })
+      return message(form, 'Invalid Form')
     }
 
     // 2) Fetch active term from config
@@ -141,7 +141,7 @@ export const actions = {
       .single()
     if (cfgErr || !cfg?.value) {
       console.error('Error fetching active term:', cfgErr)
-      return fail(500, { message: 'Unable to determine current term.' })
+      return message(form, 'Unable to determine current term.', { status: 500 })
     }
     const termId = Number(cfg.value)
 
@@ -161,15 +161,18 @@ export const actions = {
     }
 
     // 4) Insert into Supabase
-    const { error: insertErr } = await db
+    const { data: inserted, error: insertErr } = await db
       .from('maktab_registrations')
       .insert(payload)
+      .select('verification_token')
+      .single()
+
     if (insertErr) {
       console.error('Insert error:', insertErr)
-      return fail(500, { message: insertErr.message })
+      return message(form, insertErr.message, { status: 500 })
     }
 
     // 5) Success
-    return { form }
+    return message(form, { token: inserted.verification_token })
   },
 }

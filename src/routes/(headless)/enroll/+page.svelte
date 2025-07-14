@@ -24,16 +24,31 @@
   } from '$lib/components/ui/alert-dialog'
   import { Plus, Trash2, Users, Baby, MapPin, Mail, Phone } from 'lucide-svelte'
   import PhoneInput from '$lib/components/PhoneInput.svelte'
+  import { browser } from '$app/environment'
 
   const { data } = $props()
   const form = superForm(data.form, {
     dataType: 'json',
     onUpdated: ({ form }) => {
+      if (!form.valid && !form.message?.token) return
+
       if (form.errors?.confirmParent) {
         showParentWarning = true
       }
-      if (form.valid) {
+
+      const token = (form.message.token as string? ) || ''
+
+      if (token) {
+        localStorage.setItem('verifyToken', token)
+
         toast.success('Registration submitted successfully!')
+
+        setTimeout(() => {
+          // Statically encoded base case (1 child) for now
+          if (browser) {
+            window.location.href = 'https://us.mohid.co/ga/atlanta/suffamasjid/masjid/online/donation/13'
+          }
+        }, 3000)
       }
     },
   })
