@@ -124,7 +124,7 @@
       showParentWarning = true
     }
     if (browser) {
-      window.location.href = mohidLink + paymentType 
+      window.location.href = mohidLink + paymentType[numChildren - 1] 
     }
   }
 
