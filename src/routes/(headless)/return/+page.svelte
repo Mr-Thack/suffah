@@ -17,6 +17,7 @@
     if (token) {
       const { data: success, error } = await db.rpc('verify_payment', {
         token: token,
+        method: 'RETURN',
       })
       if (error) {
         console.error('Verification failed:', error.message)
