@@ -44,8 +44,10 @@
         via email once everything is verified.
       </CardDescription>
     </CardHeader>
-    <CardContent>
-      <Button href="/">Return to Homepage</Button>
-    </CardContent>
+    <!--
+      <CardContent>
+        <Button href="/">Return to Homepage</Button>
+      </CardContent>
+    -->
   </Card>
 </div>
