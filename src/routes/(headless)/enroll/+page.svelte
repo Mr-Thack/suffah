@@ -46,7 +46,6 @@
         setTimeout(() => {
           // Statically encoded base case (1 child) for now
           if (browser) {
-            window.location.href = 'https://us.mohid.co/ga/atlanta/suffamasjid/masjid/online/donation/13'
           }
         }, 3000)
       }
@@ -57,10 +56,13 @@
   let showParentWarning = $state(false)
   let formEl: HTMLFormElement
 
+  const childrenCost = [100, 160, 200]
+  const mohidLink = 'https://us.mohid.co/ga/atlanta/suffamasjid/masjid/online/donation/'
+  const paymentType = [5, 7, 2]
+  // Put payment id for each child (indexing from 0)
+
   const numChildren = $derived($formData.children.length)
-  const totalCost = $derived(
-    numChildren === 1 ? 100 : numChildren === 2 ? 160 : 200,
-  )
+  const totalCost = $derived(childrenCost[numChildren - 1])
 
   const isChildComplete = (child) => {
     if (!child.name || !child.dob || !child.sex) return false
@@ -120,6 +122,9 @@
     if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
       event.preventDefault()
       showParentWarning = true
+    }
+    if (browser) {
+      window.location.href = mohidLink + paymentType 
     }
   }
 
