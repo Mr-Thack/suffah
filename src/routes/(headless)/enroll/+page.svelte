@@ -25,6 +25,11 @@
   import { Plus, Trash2, Users, Baby, MapPin, Mail, Phone } from 'lucide-svelte'
   import PhoneInput from '$lib/components/PhoneInput.svelte'
   import { browser } from '$app/environment'
+  import { db } from '$lib/db.js'
+  import { onMount } from 'svelte'
+  import ParentAlert from '$lib/components/ParentAlert.svelte'
+  import PaymentAlert from '$lib/components/PaymentAlert.svelte'
+
 
   const { data } = $props()
   const form = superForm(data.form, {
@@ -54,7 +59,8 @@
 
   const { form: formData, enhance } = form
   let showParentWarning = $state(false)
-  let formEl: HTMLFormElement
+  let showPaymentAlert = $state(false)
+  let formEl: HTMLFormElement = $state()
 
   const childrenCost = [100, 160, 200]
   const mohidLink = 'https://us.mohid.co/ga/atlanta/suffamasjid/masjid/online/donation/'
@@ -122,17 +128,52 @@
     if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
       event.preventDefault()
       showParentWarning = true
-    }
-    if (browser) {
+    } else {
+      showPaymentAlert = true
+    }  
+  }
+
+  function handlePayment() {
+    if (browser && currentTerm) {
       window.location.href = mohidLink + paymentType[numChildren - 1] 
     }
   }
 
-  function proceedWithIncompleteInfo() {
+  function proceedIncomplete() {
     showParentWarning = false
     $formData.confirmParent = true
     formEl.requestSubmit()
   }
+
+  let currentTerm: { name: string; length: number } | null = $state(null)
+  let termStatus: 'loading' | 'closed' | 'ok' = $state('loading')
+
+  onMount(async () => {
+    const { data: cfg, error: e1 } = await db
+      .from('config')
+      .select('value')
+      .eq('key', 'active_term_id')
+      .single()
+
+    if (e1 || !cfg?.value) {
+      termStatus = 'closed'
+      return
+    }
+
+    const { data: term, error: e2 } = await db
+      .from('maktab_term')
+      .select('name, length')
+      .eq('id', +cfg.value)
+      .single()
+
+    if (!term) {
+      termStatus = 'closed'
+    } else {
+      currentTerm = term
+      termStatus = 'ok'
+    }
+  })
+
 </script>
 
 <svelte:head>
@@ -149,334 +190,337 @@
   <div
     class="text-center py-12 px-4 bg-gradient-to-b from-primary/5 to-background">
     <h1 class="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-      Maktab Registration
+      {#if termStatus === 'loading'}
+        Loading..
+      {:else if termStatus === 'closed'}
+        Registration is currently closed.
+      {:else}
+        Maktab Registration – {currentTerm.name}
+      {/if}
     </h1>
-    <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
-      Register your child(ren) for our Islamic Studies program.
-    </p>
-    <div class="w-24 h-1 bg-primary mx-auto rounded-full mt-6"></div>
+
+    {#if termStatus !== 'closed'}
+      <p class="text-muted-foreground text-lg max-w-2xl mx-auto">
+        Register your child(ren) for our Islamic Studies program.
+      </p>
+      <div class="w-24 h-1 bg-primary mx-auto rounded-full mt-6"></div>
+    {/if}
   </div>
 
-  <form
-    bind:this={formEl}
-    method="POST"
-    use:enhance
-    class="max-w-4xl mx-auto px-4 pb-16 space-y-8"
-    onsubmit={handleSubmit}>
-    <Card>
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <Users class="w-5 h-5" />
-          Parent Information
-        </CardTitle>
-        <p class="text-sm text-muted-foreground">
-          Please provide at least one parent's complete information.
-        </p>
-      </CardHeader>
-      <CardContent class="space-y-6">
-        <div class="space-y-4">
-          <h4 class="font-medium flex items-center gap-2">
-            Father's Information
-            {@render completionIndicator(fatherComplete)}
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Form.Field {form} name="father.name">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label>Name</Form.Label>
-                  <Input
-                    {...props}
-                    autocomplete="name"
-                    bind:value={$formData.father.name}
-                    placeholder="Father's full name" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-
-            <Form.Field {form} name="father.phone">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label class="flex items-center gap-1">
-                    <Phone class="w-3 h-3" /> Phone
-                  </Form.Label>
-                  <PhoneInput {...props} bind:phone={$formData.father.phone} />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-
-            <Form.Field {form} name="father.email">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label class="flex items-center gap-1">
-                    <Mail class="w-3 h-3" /> Email
-                  </Form.Label>
-                  <Input
-                    type="email"
-                    {...props}
-                    autocomplete="email"
-                    bind:value={$formData.father.email}
-                    placeholder="father@example.com" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-          </div>
-        </div>
-        <div class="space-y-4">
-          <h4 class="font-medium flex items-center gap-2">
-            Mother's Information
-            {@render completionIndicator(motherComplete)}
-          </h4>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Form.Field {form} name="mother.name">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label>Name</Form.Label>
-                  <Input
-                    {...props}
-                    autocomplete="name"
-                    bind:value={$formData.mother.name}
-                    placeholder="Mother's full name" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-
-            <Form.Field {form} name="mother.phone">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label class="flex items-center gap-1">
-                    <Phone class="w-3 h-3" /> Phone
-                  </Form.Label>
-                  <PhoneInput {...props} bind:phone={$formData.mother.phone} />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-
-            <Form.Field {form} name="mother.email">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label class="flex items-center gap-1">
-                    <Mail class="w-3 h-3" /> Email
-                  </Form.Label>
-                  <Input
-                    type="email"
-                    {...props}
-                    autocomplete="email"
-                    bind:value={$formData.mother.email}
-                    placeholder="mother@example.com" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-          </div>
-        </div>
-        <div class="space-y-4 pt-4 border-t">
-          <h4 class="font-medium flex items-center gap-2">
-            <MapPin class="w-4 h-4" /> Address Information
-            {@render completionIndicator(addressComplete)}
-          </h4>
-          <Form.Field {form} name="address">
-            <Form.Control>
-              {#snippet children({ props })}
-                <Form.Label>Street Address</Form.Label>
-                <Input
-                  {...props}
-                  autocomplete="street-address"
-                  bind:value={$formData.address}
-                  placeholder="123 Main Street" />
-              {/snippet}
-            </Form.Control>
-            <Form.FieldErrors />
-          </Form.Field>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Field {form} name="city">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label>City</Form.Label>
-                  <Input
-                    {...props}
-                    autocomplete="address-level2"
-                    bind:value={$formData.city}
-                    placeholder="City" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-            <Form.Field {form} name="zipCode">
-              <Form.Control>
-                {#snippet children({ props })}
-                  <Form.Label>ZIP Code</Form.Label>
-                  <Input
-                    {...props}
-                    autocomplete="postal-code"
-                    bind:value={$formData.zipCode}
-                    placeholder="12345" />
-                {/snippet}
-              </Form.Control>
-              <Form.FieldErrors />
-            </Form.Field>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-
-    <Card>
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2 justify-center">
-          <Baby class="w-5 h-5" />
-          Children Information
-        </CardTitle>
-        <p class="text-sm text-muted-foreground text-center">
-          Add information for each child you wish to register.
-        </p>
-      </CardHeader>
-      <CardContent class="space-y-6">
-        {#each $formData.children as child, index}
-          <div class="border rounded-lg p-4 space-y-4">
-            <div class="flex items-center justify-between">
-              <h4 class="font-medium">Child {index + 1}</h4>
-              <div class="flex items-center gap-2">
-                {@render completionIndicator(isChildComplete(child))}
-                {#if $formData.children.length > 1}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onclick={() => removeChild(index)}
-                    class="text-destructive hover:text-destructive">
-                    <Trash2 class="w-4 h-4" />
-                  </Button>
-                {/if}
-              </div>
-            </div>
-            <div class="flex flex-wrap gap-4 items-start">
-              <Form.Field
-                {form}
-                name="children[{index}].name"
-                class="flex-1 min-w-0">
+  {#if termStatus !== 'closed'}
+    <form
+      bind:this={formEl}
+      method="POST"
+      use:enhance
+      class="max-w-4xl mx-auto px-4 pb-16 space-y-8"
+      onsubmit={handleSubmit}>
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <Users class="w-5 h-5" />
+            Parent Information
+          </CardTitle>
+          <p class="text-sm text-muted-foreground">
+            Please provide at least one parent's complete information.
+          </p>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <div class="space-y-4">
+            <h4 class="font-medium flex items-center gap-2">
+              Father's Information
+              {@render completionIndicator(fatherComplete)}
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Form.Field {form} name="father.name">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block">Name</Form.Label>
+                    <Form.Label>Name</Form.Label>
                     <Input
                       {...props}
-                      bind:value={child.name}
-                      placeholder="Child's full name" />
+                      autocomplete="name"
+                      bind:value={$formData.father.name}
+                      placeholder="Father's full name" />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
               </Form.Field>
-              <Form.Field
-                {form}
-                name="children[{index}].dob"
-                class="basis-full md:basis-auto flex-shrink-0">
+
+              <Form.Field {form} name="father.phone">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block">Date of Birth</Form.Label>
-                    <Input type="date" {...props} bind:value={child.dob} />
+                    <Form.Label class="flex items-center gap-1">
+                      <Phone class="w-3 h-3" /> Phone
+                    </Form.Label>
+                    <PhoneInput
+                      {...props}
+                      bind:phone={$formData.father.phone} />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
               </Form.Field>
-              <Form.Field
-                {form}
-                name="children[{index}].sex"
-                class="basis-full md:basis-auto flex-shrink-0">
+
+              <Form.Field {form} name="father.email">
                 <Form.Control>
                   {#snippet children({ props })}
-                    <Form.Label class="block">Gender</Form.Label>
-                    <Select.Root type="single" bind:value={child.sex}>
-                      <Select.Trigger {...props}>
-                        {child.sex === 'male'
-                          ? 'Male'
-                          : child.sex === 'female'
-                            ? 'Female'
-                            : 'Select gender'}
-                      </Select.Trigger>
-                      <Select.Content>
-                        <Select.Item value="male">Male</Select.Item>
-                        <Select.Item value="female">Female</Select.Item>
-                      </Select.Content>
-                    </Select.Root>
+                    <Form.Label class="flex items-center gap-1">
+                      <Mail class="w-3 h-3" /> Email
+                    </Form.Label>
+                    <Input
+                      type="email"
+                      {...props}
+                      autocomplete="email"
+                      bind:value={$formData.father.email}
+                      placeholder="father@example.com" />
                   {/snippet}
                 </Form.Control>
                 <Form.FieldErrors />
               </Form.Field>
             </div>
           </div>
-        {/each}
+          <div class="space-y-4">
+            <h4 class="font-medium flex items-center gap-2">
+              Mother's Information
+              {@render completionIndicator(motherComplete)}
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Form.Field {form} name="mother.name">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label>Name</Form.Label>
+                    <Input
+                      {...props}
+                      autocomplete="name"
+                      bind:value={$formData.mother.name}
+                      placeholder="Mother's full name" />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
 
-        <Button
-          type="button"
-          variant="outline"
-          onclick={addChild}
-          class="w-full">
-          <Plus class="w-4 h-4 mr-2" />
-          Add Another Child
-        </Button>
-      </CardContent>
-    </Card>
+              <Form.Field {form} name="mother.phone">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label class="flex items-center gap-1">
+                      <Phone class="w-3 h-3" /> Phone
+                    </Form.Label>
+                    <PhoneInput
+                      {...props}
+                      bind:phone={$formData.mother.phone} />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
 
-    <Card
-      class="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
-      <CardHeader>
-        <CardTitle class="flex items-center gap-2">
-          <Users class="w-5 h-5" />
-          Registration Summary & Payment
-        </CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {#each pricingTiers as tier}
-            <div
-              class="text-center p-4 rounded-lg border transition-colors"
-              class:bg-primary={tier.isActive}
-              class:border-primary={tier.isActive}
-              class:text-primary-foreground={tier.isActive}
-              class:border-muted={!tier.isActive}
-              class:bg-muted={!tier.isActive}>
-              <div class="text-2xl font-bold">${tier.price}</div>
-              <div class="text-sm opacity-70">{tier.label}</div>
+              <Form.Field {form} name="mother.email">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label class="flex items-center gap-1">
+                      <Mail class="w-3 h-3" /> Email
+                    </Form.Label>
+                    <Input
+                      type="email"
+                      {...props}
+                      autocomplete="email"
+                      bind:value={$formData.mother.email}
+                      placeholder="mother@example.com" />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
+            </div>
+          </div>
+          <div class="space-y-4 pt-4 border-t">
+            <h4 class="font-medium flex items-center gap-2">
+              <MapPin class="w-4 h-4" /> Address Information
+              {@render completionIndicator(addressComplete)}
+            </h4>
+            <Form.Field {form} name="address">
+              <Form.Control>
+                {#snippet children({ props })}
+                  <Form.Label>Street Address</Form.Label>
+                  <Input
+                    {...props}
+                    autocomplete="street-address"
+                    bind:value={$formData.address}
+                    placeholder="123 Main Street" />
+                {/snippet}
+              </Form.Control>
+              <Form.FieldErrors />
+            </Form.Field>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Field {form} name="city">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label>City</Form.Label>
+                    <Input
+                      {...props}
+                      autocomplete="address-level2"
+                      bind:value={$formData.city}
+                      placeholder="City" />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
+              <Form.Field {form} name="zipCode">
+                <Form.Control>
+                  {#snippet children({ props })}
+                    <Form.Label>ZIP Code</Form.Label>
+                    <Input
+                      {...props}
+                      autocomplete="postal-code"
+                      bind:value={$formData.zipCode}
+                      placeholder="12345" />
+                  {/snippet}
+                </Form.Control>
+                <Form.FieldErrors />
+              </Form.Field>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2 justify-center">
+            <Baby class="w-5 h-5" />
+            Children Information
+          </CardTitle>
+          <p class="text-sm text-muted-foreground text-center">
+            Add information for each child you wish to register.
+          </p>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          {#each $formData.children as child, index}
+            <div class="border rounded-lg p-4 space-y-4">
+              <div class="flex items-center justify-between">
+                <h4 class="font-medium">Child {index + 1}</h4>
+                <div class="flex items-center gap-2">
+                  {@render completionIndicator(isChildComplete(child))}
+                  {#if $formData.children.length > 1}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onclick={() => removeChild(index)}
+                      class="text-destructive hover:text-destructive">
+                      <Trash2 class="w-4 h-4" />
+                    </Button>
+                  {/if}
+                </div>
+              </div>
+              <div class="flex flex-wrap gap-4 items-start">
+                <Form.Field
+                  {form}
+                  name="children[{index}].name"
+                  class="flex-1 min-w-0">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="block">Name</Form.Label>
+                      <Input
+                        {...props}
+                        bind:value={child.name}
+                        placeholder="Child's full name" />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.Field>
+                <Form.Field
+                  {form}
+                  name="children[{index}].dob"
+                  class="basis-full md:basis-auto flex-shrink-0">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="block">Date of Birth</Form.Label>
+                      <Input type="date" {...props} bind:value={child.dob} />
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.Field>
+                <Form.Field
+                  {form}
+                  name="children[{index}].sex"
+                  class="basis-full md:basis-auto flex-shrink-0">
+                  <Form.Control>
+                    {#snippet children({ props })}
+                      <Form.Label class="block">Gender</Form.Label>
+                      <Select.Root type="single" bind:value={child.sex}>
+                        <Select.Trigger {...props}>
+                          {child.sex === 'male'
+                            ? 'Male'
+                            : child.sex === 'female'
+                              ? 'Female'
+                              : 'Select gender'}
+                        </Select.Trigger>
+                        <Select.Content>
+                          <Select.Item value="male">Male</Select.Item>
+                          <Select.Item value="female">Female</Select.Item>
+                        </Select.Content>
+                      </Select.Root>
+                    {/snippet}
+                  </Form.Control>
+                  <Form.FieldErrors />
+                </Form.Field>
+              </div>
             </div>
           {/each}
-        </div>
 
-        <div class="space-y-4">
           <Button
-            type="submit"
-            size="lg"
-            class="w-full text-lg py-6"
-            disabled={!completedForm}>
-            Continue to Payment • ${totalCost}
+            type="button"
+            variant="outline"
+            onclick={addChild}
+            class="w-full">
+            <Plus class="w-4 h-4 mr-2" />
+            Add Another Child
           </Button>
+        </CardContent>
+      </Card>
 
-          <p class="text-xs text-muted-foreground text-center">
-            By submitting this form, you acknowledge any changes must be made by
-            contacting Administration.
-          </p>
-        </div>
-      </CardContent>
-    </Card>
-  </form>
+      <Card
+        class="border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+        <CardHeader>
+          <CardTitle class="flex items-center gap-2">
+            <Users class="w-5 h-5" />
+            Registration Summary & Payment
+          </CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {#each pricingTiers as tier}
+              <div
+                class="text-center p-4 rounded-lg border transition-colors"
+                class:bg-primary={tier.isActive}
+                class:border-primary={tier.isActive}
+                class:text-primary-foreground={tier.isActive}
+                class:border-muted={!tier.isActive}
+                class:bg-muted={!tier.isActive}>
+                <div class="text-2xl font-bold">${tier.price}</div>
+                <div class="text-sm opacity-70">{tier.label}</div>
+              </div>
+            {/each}
+          </div>
+
+          <div class="space-y-4">
+            <Button
+              type="submit"
+              size="lg"
+              class="w-full text-lg py-6"
+              disabled={!completedForm}>
+              Continue to Payment • ${totalCost}
+            </Button>
+
+            <p class="text-xs text-muted-foreground text-center">
+              By submitting this form, you acknowledge any changes must be made
+              by contacting Administration.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </form>
+  {/if}
 </div>
 
-<AlertDialog bind:open={showParentWarning}>
-  <AlertDialogContent>
-    <AlertDialogHeader>
-      <AlertDialogTitle>Incomplete Parent Information</AlertDialogTitle>
-      <AlertDialogDescription>
-        You can proceed with just one parent's complete info, but we prefer
-        both. Would you like to go back or continue?
-      </AlertDialogDescription>
-    </AlertDialogHeader>
-    <AlertDialogFooter>
-      <AlertDialogCancel>Go Back</AlertDialogCancel>
-      <AlertDialogAction onclick={proceedWithIncompleteInfo}>
-        Continue
-      </AlertDialogAction>
-    </AlertDialogFooter>
-  </AlertDialogContent>
-</AlertDialog>
+<ParentAlert bind:open={showParentWarning} onProceed={proceedIncomplete} />
+<PaymentAlert
+  bind:open={showPaymentAlert}
+  {currentTerm}
+  onProceed={handlePayment} />
