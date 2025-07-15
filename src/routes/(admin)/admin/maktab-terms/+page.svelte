@@ -9,13 +9,12 @@
   import { toast } from 'svelte-sonner'
 
   // State
-  let terms = $state([] as { id: number; name: string }[])
+  let terms = $state([] as { id: number; name: string; length: number }[])
   let activeTermId: number | null = $state(null)
   let loading = $state(false)
 
   let newName = $state('')
-  let newStart = $state('')
-  let newEnd = $state('')
+  let termLength = $state(6)
   let adding = $state(false)
 
   let dialogOpen = $state(false)
@@ -24,7 +23,7 @@
   async function loadData() {
     const { data: termData, error: termErr } = await db
       .from('maktab_term')
-      .select('id, name')
+      .select('id, name, length')
       .order('id', { ascending: true })
     if (termErr) {
       toast.error('Error loading terms: ' + termErr.message)
@@ -48,22 +47,21 @@
 
   // Add a new term
   async function handleAddTerm() {
-    if (!newName || !newStart || !newEnd) {
+    if (!newName || !termLength) {
       toast.error('Please fill all fields')
       return
     }
     adding = true
     const { error } = await db
       .from('maktab_term')
-      .insert({ name: newName, start_date: newStart, end_date: newEnd })
+      .insert({ name: newName, length: termLength })
     adding = false
     if (error) {
       toast.error('Failed to add term: ' + error.message)
     } else {
       toast.success('Term added')
       newName = ''
-      newStart = ''
-      newEnd = ''
+      termLength = 6
       await loadData()
     }
   }
@@ -87,6 +85,13 @@
   }
 </script>
 
+{#snippet Term(term)}
+  {term.name}
+  <em class="inline text-muted">
+    ({term.length} months)
+  </em>
+{/snippet}
+
 <div class="space-y-6 p-4">
   <h1 class="text-2xl font-bold">Manage School Terms</h1>
 
@@ -102,12 +107,14 @@
           placeholder="e.g., Summer 2025" />
       </div>
       <div>
-        <Label for="start-date">Start Date</Label>
-        <Input id="start-date" type="date" bind:value={newStart} />
-      </div>
-      <div>
-        <Label for="end-date">End Date</Label>
-        <Input id="end-date" type="date" bind:value={newEnd} />
+        <Label for="term-length">Term Length</Label>
+        <Input
+          id="term-length"
+          type="number"
+          min={2}
+          max={12}
+          bind:value={termLength}
+          defaultValue={6} />
       </div>
     </div>
     <Button onclick={handleAddTerm} disabled={adding} class="mt-4">
@@ -122,16 +129,18 @@
       type="single"
       bind:value={activeTermId}
       onopenChange={() => (dialogOpen = true)}>
-      <Select.Trigger class="w-full">
+      <Select.Trigger class="min-w-1/4">
         {#if activeTermId}
-          {terms.find((t) => t.id === activeTermId)?.name}
+          {@render Term(terms.find((t) => t.id === activeTermId)?)}
         {:else}
           Select a term…
         {/if}
       </Select.Trigger>
       <Select.Content>
         {#each terms as term}
-          <Select.Item value={term.id}>{term.name}</Select.Item>
+          <Select.Item value={term.id}>
+            {@render Term(term)}
+          </Select.Item>
         {/each}
       </Select.Content>
     </Select.Root>
