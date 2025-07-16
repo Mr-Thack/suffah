@@ -193,7 +193,7 @@
 
     const { data: term, error: e2 } = await db
       .from('maktab_term')
-      .select('name, length')
+      .select('name, length, ')
       .eq('id', +cfg.value)
       .single()
 
@@ -547,32 +547,31 @@
             <Form.FieldErrors />
           </Form.Field>
 
-          <div class="mt-24">
-            <div class="prose dark:prose-invert text-l text-center">
-              By submitting this form, you acknowledge:
-              <ol>
-                <li>
-                  When you enroll, you are signing up for the
-                  <strong>entire program</strong> (not just month-to-month)
-                </li>
-                <li>
-                  <strong>No refunds</strong> will be given — even if your child(ren)
-                  stop(s) coming.
-                </li>
-                <li>
-                  <strong>Monthly payments will still be charged</strong>, even
-                  if your child does not attend.
-                </li>
-                <li>
-                  <strong>You cannot cancel or withdraw</strong> from the program
-                  after enrolling
-                </li>
-                <li>
-                  Your card will be
-                  <strong>automatically charged each month</strong>.
-                </li>
-              </ol>
-            </div>
+          <div
+            class="prose mt-20 dark:prose-invert mx-auto items-center text-center">
+            <h1>By submitting this form, you acknowledge:</h1>
+            <ol>
+              <li>
+                When you enroll, you are signing up for the
+                <strong>entire program</strong> (not just month-to-month)
+              </li>
+              <li>
+                <strong>No refunds</strong> will be given — even if your child(ren)
+                stop(s) coming.
+              </li>
+              <li>
+                <strong>Monthly payments will still be charged</strong>, even if
+                your child does not attend.
+              </li>
+              <li>
+                <strong>You cannot cancel or withdraw</strong> from the program after
+                enrolling
+              </li>
+              <li>
+                Your card will be
+                <strong>automatically charged each month</strong>.
+              </li>
+            </ol>
             <div class="my-4 text-xl text-center flex items-center gap-3">
               <Checkbox bind:checked={termsAccepted} id="terms" />
               <Label for="terms" class="text-lg"
