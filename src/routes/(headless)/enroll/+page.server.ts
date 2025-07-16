@@ -182,8 +182,8 @@ export const actions = {
     if (nonce.length === 0) {
       return setError(
         form,
-        'nonce',
-        'Payment Processor Issue. Refresh or seek help.',
+        '',
+        'Payment Processor Issue. Refresh or seek help. (nonce not recieved)',
       )
     } else if (cardHolderName.length === 0) {
       return setError(

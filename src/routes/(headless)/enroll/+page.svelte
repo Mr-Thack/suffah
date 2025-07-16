@@ -138,13 +138,14 @@
     } else {
       let { status, token } = await card.tokenize()
       console.log(status, token)
-      if (status !== 'OK')
+      if (status !== 'OK') {
         return toast.error('Card info invalid—please try again.')
+      } else {
+        $formData.nonce = token
 
-      $formData.nonce = token
-
-      toast.info('Checking Information...')
-      formEl.requestSubmit()
+        toast.info('Checking Information...')
+        formEl.requestSubmit()
+      }
     }
   }
 
