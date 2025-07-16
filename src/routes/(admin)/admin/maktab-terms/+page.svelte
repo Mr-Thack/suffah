@@ -79,9 +79,12 @@
       name: newName,
       length: termLength,
       pid: b.planId,
-      p1: b.variations[0],
-      p2: b.variations[1],
-      p3: b.variations[2],
+      p1,
+      p2,
+      p3,
+      sid1: b.variations[0],
+      sid2: b.variations[1],
+      sid3: b.variations[2],
     })
 
     adding = false

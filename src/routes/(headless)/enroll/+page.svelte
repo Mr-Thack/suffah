@@ -96,7 +96,6 @@
       $formData.cardHolderName,
   )
 
-  // TODO: MAKE THIS DYNAMIC
   const pricingTiers = $derived([
     { count: 1, price: 100, label: '1 Child', isActive: numChildren === 1 },
     { count: 2, price: 160, label: '2 Children', isActive: numChildren === 2 },
@@ -156,7 +155,13 @@
     showPaymentAlert = false
   }
 
-  let currentTerm: { name: string; length: number } | null = $state(null)
+  let currentTerm: {
+    name: string
+    length: number
+    p1: number
+    p2: number
+    p3: number
+  } | null = $state(null)
   let termStatus: 'loading' | 'closed' | 'ok' = $state('loading')
 
   let card = null
@@ -193,7 +198,7 @@
 
     const { data: term, error: e2 } = await db
       .from('maktab_term')
-      .select('name, length')
+      .select('name, length, p1, p2, p3')
       .eq('id', +cfg.value)
       .single()
 
@@ -201,6 +206,11 @@
       termStatus = 'closed'
     } else {
       currentTerm = term
+
+      pricingTiers[0].price = term.p1
+      pricingTiers[1].price = term.p2
+      pricingTiers[2].price = term.p3
+
       termStatus = 'ok'
       await loadSquare()
     }

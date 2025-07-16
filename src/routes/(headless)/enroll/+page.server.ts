@@ -238,7 +238,7 @@ export const actions = {
     // Use the plan variations (not the actual plan itself
     // Because Square charges based off the variations
     // This also means we don't need the actual plan id itself
-    let indices = ['p1', 'p2', 'p3']
+    let indices = ['sid1', 'sid2', 'sid3']
     let planVariationId = termInfo[indices[children.length - 1]]
     console.log(planVariationId)
 
