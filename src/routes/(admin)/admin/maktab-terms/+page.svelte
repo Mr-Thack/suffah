@@ -15,6 +15,9 @@
 
   let newName = $state('')
   let termLength = $state(6)
+  let p1 = $state(100)
+  let p2 = $state(160)
+  let p3 = $state(200)
   let adding = $state(false)
 
   let dialogOpen = $state(false)
@@ -52,9 +55,35 @@
       return
     }
     adding = true
-    const { error } = await db
-      .from('maktab_term')
-      .insert({ name: newName, length: termLength })
+
+    console.log(newName, termLength, p1, p2, p3)
+    const res = await fetch('/api/term-plans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        termName: newName,
+        termLength: termLength,
+        prices: [p1 * 100, p2 * 100, p3 * 100],
+      }),
+    })
+
+    if (!res.ok) {
+      toast.error('Failed to add term: ' + res.statusText)
+      return
+    }
+
+    let b = await res.json()
+    console.log(b)
+
+    const { error } = await db.from('maktab_term').insert({
+      name: newName,
+      length: termLength,
+      pid: b.planId,
+      p1: b.variations[0],
+      p2: b.variations[1],
+      p3: b.variations[2],
+    })
+
     adding = false
     if (error) {
       toast.error('Failed to add term: ' + error.message)
@@ -115,6 +144,19 @@
           max={12}
           bind:value={termLength}
           defaultValue={6} />
+      </div>
+      <!-- This is just for now; later we'll modularize it -->
+      <div>
+        <Label for="p1">Single Student Price</Label>
+        <Input id="p1" type="number" bind:value={p1} defaultValue={100} />
+      </div>
+      <div>
+        <Label for="p2">Two Students Price</Label>
+        <Input id="p2" type="number" bind:value={p2} defaultValue={160} />
+      </div>
+      <div>
+        <Label for="p3">Three Students or More Price</Label>
+        <Input id="p3" type="number" bind:value={p3} defaultValue={200} />
       </div>
     </div>
     <Button onclick={handleAddTerm} disabled={adding} class="mt-4">
