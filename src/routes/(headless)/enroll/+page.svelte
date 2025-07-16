@@ -236,7 +236,7 @@
       {:else if termStatus === 'closed'}
         Registration is currently closed.
       {:else}
-        Maktab Registration – {currentTerm.name}
+        Maktab Registration – {currentTerm.name} ({currentTerm.length} Months)
       {/if}
     </h1>
 
@@ -563,7 +563,8 @@
             <ol>
               <li>
                 When you enroll, you are signing up for the
-                <strong>entire program</strong> (not just month-to-month)
+                <strong>entire program ({currentTerm.length} months)</strong> (not
+                just month-to-month)
               </li>
               <li>
                 <strong>No refunds</strong> will be given — even if your child(ren)
