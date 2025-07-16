@@ -40,6 +40,7 @@
   const form = superForm(data.form, {
     dataType: 'json',
     onUpdated: ({ form }) => {
+      isSubmitting = false
       if (!form.valid) return
 
       if (form.errors?.confirmParent) {
@@ -133,6 +134,7 @@
 
     if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
       showParentWarning = true
+      isSubmitting = false
     } else {
       let { status, token } = await card.tokenize()
       console.log(status, token)
@@ -140,9 +142,10 @@
         return toast.error('Card info invalid—please try again.')
 
       $formData.nonce = token
+
+      toast.info('Checking Information...')
       formEl.requestSubmit()
     }
-    isSubmitting = false
   }
 
   function proceedIncomplete() {
@@ -593,7 +596,7 @@
               type="submit"
               size="lg"
               class="w-full text-lg py-6"
-              disabled={!completedForm}>
+              disabled={!completedForm || isSubmitting}>
               Pay • ${totalCost}
             </Button>
           </div>
