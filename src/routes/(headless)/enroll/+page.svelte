@@ -193,7 +193,7 @@
 
     const { data: term, error: e2 } = await db
       .from('maktab_term')
-      .select('name, length, ')
+      .select('name, length')
       .eq('id', +cfg.value)
       .single()
 
