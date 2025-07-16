@@ -28,32 +28,22 @@
   import { db } from '$lib/db.js'
   import { onMount } from 'svelte'
   import ParentAlert from '$lib/components/ParentAlert.svelte'
-  import PaymentAlert from '$lib/components/PaymentAlert.svelte'
-
+  import {
+    PUBLIC_SQUARE_APP_ID,
+    PUBLIC_SQUARE_LOCATION_ID,
+  } from '$env/static/public'
 
   const { data } = $props()
   const form = superForm(data.form, {
     dataType: 'json',
     onUpdated: ({ form }) => {
-      if (!form.valid && !form.message?.token) return
+      if (!form.valid) return
 
       if (form.errors?.confirmParent) {
         showParentWarning = true
       }
 
-      const token = (form.message.token as string? ) || ''
-
-      if (token) {
-        localStorage.setItem('verifyToken', token)
-
-        toast.success('Registration submitted successfully!')
-
-        setTimeout(() => {
-          // Statically encoded base case (1 child) for now
-          if (browser) {
-          }
-        }, 3000)
-      }
+      toast.success('Registration submitted successfully!')
     },
   })
 
@@ -63,10 +53,6 @@
   let formEl: HTMLFormElement = $state()
 
   const childrenCost = [100, 160, 200]
-  const mohidLink = 'https://us.mohid.co/ga/atlanta/suffamasjid/masjid/online/donation/'
-  const paymentType = [5, 7, 2]
-  // Put payment id for each child (indexing from 0)
-
   const numChildren = $derived($formData.children.length)
   const totalCost = $derived(childrenCost[numChildren - 1])
 
@@ -120,23 +106,34 @@
     }
   }
 
-  function handleSubmit(event: Event) {
+  let isSubmitting = $state(false)
+  async function handleSubmit(e: Event) {
+    if (isSubmitting) {
+      return
+    }
+    isSubmitting = true
+
+    event.preventDefault()
+
     const fatherFilled =
       $formData.father.name && $formData.father.phone && $formData.father.email
     const motherFilled =
       $formData.mother.name && $formData.mother.phone && $formData.mother.email
+
+    if (!completedForm) return toast.error('Complete the form first.')
+
     if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
-      event.preventDefault()
       showParentWarning = true
     } else {
-      showPaymentAlert = true
-    }  
-  }
+      let { status, token } = await card.tokenize()
+      console.log(status, token)
+      if (status !== 'OK')
+        return toast.error('Card info invalid—please try again.')
 
-  function handlePayment() {
-    if (browser && currentTerm) {
-      window.location.href = mohidLink + paymentType[numChildren - 1] 
+      $formData.nonce = token
+      formEl.requestSubmit()
     }
+    isSubmitting = false
   }
 
   function proceedIncomplete() {
@@ -147,6 +144,26 @@
 
   let currentTerm: { name: string; length: number } | null = $state(null)
   let termStatus: 'loading' | 'closed' | 'ok' = $state('loading')
+
+  let card = null
+
+  async function loadSquare() {
+    console.log('Loading Square')
+    const s = document.createElement('script')
+    s.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
+    s.onload = async () => {
+      setTimeout(async () => {
+        let payments = Square.payments(
+          PUBLIC_SQUARE_APP_ID,
+          PUBLIC_SQUARE_LOCATION_ID,
+        )
+        card = await payments.card()
+        await card.attach('#card-container')
+        console.log('Square Attached')
+      }, 200)
+    }
+    document.body.appendChild(s)
+  }
 
   onMount(async () => {
     const { data: cfg, error: e1 } = await db
@@ -171,9 +188,9 @@
     } else {
       currentTerm = term
       termStatus = 'ok'
+      await loadSquare()
     }
   })
-
 </script>
 
 <svelte:head>
@@ -207,7 +224,7 @@
     {/if}
   </div>
 
-  {#if termStatus !== 'closed'}
+  {#if termStatus === 'ok'}
     <form
       bind:this={formEl}
       method="POST"
@@ -499,13 +516,30 @@
             {/each}
           </div>
 
+          <div id="card-container" class="my-4"></div>
+
+          <input type="hidden" name="nonce" bind:value={$formData.nonce} />
+          <Form.Field {form} name="cardHolderName">
+            <Form.Control>
+              {#snippet children({ props })}
+                <Form.Label>Card Holder Name</Form.Label>
+                <Input
+                  {...props}
+                  autocomplete="cc-name"
+                  bind:value={$formData.cardHolderName}
+                  placeholder="Name on Card" />
+              {/snippet}
+            </Form.Control>
+            <Form.FieldErrors />
+          </Form.Field>
+
           <div class="space-y-4">
             <Button
               type="submit"
               size="lg"
               class="w-full text-lg py-6"
               disabled={!completedForm}>
-              Continue to Payment • ${totalCost}
+              Pay • ${totalCost}
             </Button>
 
             <p class="text-xs text-muted-foreground text-center">
@@ -520,7 +554,3 @@
 </div>
 
 <ParentAlert bind:open={showParentWarning} onProceed={proceedIncomplete} />
-<PaymentAlert
-  bind:open={showPaymentAlert}
-  {currentTerm}
-  onProceed={handlePayment} />

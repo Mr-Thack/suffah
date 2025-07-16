@@ -1,9 +1,13 @@
 import { z } from 'zod'
 import { isValidPhoneNumber } from 'libphonenumber-js'
-import { message, superValidate } from 'sveltekit-superforms/server'
+import { setError, message, superValidate } from 'sveltekit-superforms/server'
 import { zod } from 'sveltekit-superforms/adapters'
 import { fail } from '@sveltejs/kit'
 import { db } from '$lib/db'
+import { v4 as uuid } from 'uuid'
+import { dev } from '$app/environment'
+import { square } from '$lib/square.ts'
+import { PUBLIC_SQUARE_LOCATION_ID } from '$env/static/public'
 
 // Zod schemas for parents and children
 const parentSchemaRaw = z
@@ -85,6 +89,8 @@ const maktabSchema = z
       .array(childSchema)
       .min(1, 'At least one child must be registered'),
     confirmParent: z.boolean().optional(),
+    nonce: z.string().optional(),
+    cardHolderName: z.string().optional(),
   })
   .refine((data) => isDone(data.father) || isDone(data.mother), {
     message: "At least one parent's complete information must be provided",
@@ -118,6 +124,7 @@ export const load = async () => {
       zipCode: '',
       children: [{ name: '', sex: 'male', dob: '' }],
       confirmParent: false,
+      nonce: '',
     },
   })
   return { form }
@@ -130,8 +137,11 @@ export const actions = {
     const form = await superValidate(request, zod(maktabSchema))
     if (!form.valid) {
       console.warn('Validation failed:', form)
-      return message(form, 'Invalid Form')
+      return fail(400, { form })
     }
+
+    // If we ever need to list all possible subscriptions
+    // console.log(await square.catalog.list())
 
     // 2) Fetch active term from config
     const { data: cfg, error: cfgErr } = await db
@@ -141,38 +151,151 @@ export const actions = {
       .single()
     if (cfgErr || !cfg?.value) {
       console.error('Error fetching active term:', cfgErr)
-      return message(form, 'Unable to determine current term.', { status: 500 })
+      return setError(
+        form,
+        '',
+        'SERVER ERROR: Unable to determine current term.',
+      )
     }
     const termId = Number(cfg.value)
 
-    // 3) Build payload for insertion
-    const payload = {
-      term_id: termId,
-      father_name: form.data.father.name || null,
-      father_phone: form.data.father.phone || null,
-      father_email: form.data.father.email || null,
-      mother_name: form.data.mother.name || null,
-      mother_phone: form.data.mother.phone || null,
-      mother_email: form.data.mother.email || null,
-      address: form.data.address,
-      city: form.data.city,
-      zip_code: form.data.zipCode,
-      children: form.data.children,
+    const { data: termInfo, error: termErr } = await db
+      .from('maktab_term')
+      .select('*')
+      .eq('id', termId)
+      .single()
+
+    console.log(termInfo)
+
+    // 3) Destructure form data
+    const {
+      father,
+      mother,
+      address,
+      city,
+      zipCode,
+      children,
+      nonce,
+      cardHolderName,
+    } = form.data
+
+    if (nonce.length === 0) {
+      return setError(
+        form,
+        'nonce',
+        'Payment Processor Issue. Refresh or seek help.',
+      )
+    } else if (cardHolderName.length === 0) {
+      return setError(
+        form,
+        'nameOnCard',
+        'Please provide the name of the cardholder',
+      )
     }
 
-    // 4) Insert into Supabase
+    const billingAddress = {
+      addressLine1: address,
+      locality: city,
+      administrativeDistrictLevel1: 'GA',
+      postalCode: zipCode,
+      country: 'US',
+    }
+
+    // 4) Create Square Customer
+    let result = await square.customers.create({
+      givenName: father.name || mother.name,
+      familyName: mother.name || father.name,
+      emailAddress: father.email || mother.email,
+      phoneNumber: father.phone || mother.phone,
+      address: billingAddress,
+    })
+
+    if (result.errors) {
+      console.error('Payment Setup Failure', result.errors)
+      return setError(form, '', `Payment setup failed: ${result.errors}`)
+    }
+
+    const customerId = result.customer.id
+
+    // 5) Add Card to Customer's Account
+    result = await square.cards.create({
+      idempotencyKey: uuid(),
+      sourceId: nonce,
+      card: {
+        cardHolderName,
+        billingAddress,
+        customerId,
+      },
+    })
+
+    if (result.errors) {
+      console.error('Card Attachment Failure', result.errors)
+      return setError(form, '', `Card Attachment failed: ${result.errors}`)
+    }
+
+    const cardId = result.card.id
+
+    // Use the plan variations (not the actual plan itself
+    // Because Square charges based off the variations
+    // This also means we don't need the actual plan id itself
+    let indices = ['p1', 'p2', 'p3']
+    let planVariationId = termInfo[indices[children.length - 1]]
+    console.log(planVariationId)
+
+    // 5) Create Subscription (charge card)
+    result = await square.subscriptions.create({
+      idempotencyKey: uuid(),
+      locationId: PUBLIC_SQUARE_LOCATION_ID!,
+      planVariationId,
+      customerId,
+      startDate: new Date().toISOString().slice(0, 10),
+      timezone: 'America/New_York',
+      cardId,
+    })
+
+    console.log(result)
+
+    if (result.errors) {
+      console.error('Subscription failed:', result.errors)
+      return setError(form, '', `Payment failed: ${result.errors}`)
+    }
+
+    const subscription = result.subscription
+
+    // 6) Build payload for insertion
+    const payload = {
+      term_id: termId,
+
+      father_name: father.name || null,
+      father_phone: father.phone || null,
+      father_email: father.email || null,
+
+      mother_name: mother.name || null,
+      mother_phone: mother.phone || null,
+      mother_email: mother.email || null,
+
+      address,
+      city,
+      zip_code: zipCode,
+
+      children: children,
+
+      customer_id: customerId,
+      subscription_id: subscription.id,
+      status: subscription.status,
+    }
+
+    // 7) Insert into Supabase
     const { data: inserted, error: insertErr } = await db
       .from('maktab_registrations')
       .insert(payload)
-      .select('verification_token')
-      .single()
 
     if (insertErr) {
       console.error('Insert error:', insertErr)
-      return message(form, insertErr.message, { status: 500 })
+      return setError(form, '', `DB ERROR: ${insertErr.message}`)
     }
 
-    // 5) Success
-    return message(form, { token: inserted.verification_token })
+    // 8) Success
+    return message(form, { success: true, subscriptionId: subscription.id })
   },
 }
