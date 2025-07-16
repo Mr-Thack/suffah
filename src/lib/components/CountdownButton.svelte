@@ -2,7 +2,12 @@
   import { onMount } from 'svelte'
   import { Button } from '$lib/components/ui/button'
 
-  let { seconds = 5, onClick } = $props<{
+  let {
+    text = 'OK',
+    seconds = 5,
+    onClick,
+  } = $props<{
+    text?: string
     seconds?: number
     onClick: () => void
   }>()
@@ -19,5 +24,5 @@
 </script>
 
 <Button disabled={remaining > 0} onclick={onClick} class="w-full">
-  {remaining > 0 ? `Wait ${remaining}s` : 'Proceed to Payment'}
+  {remaining > 0 ? `Wait ${remaining}s` : text || 'OK'}
 </Button>

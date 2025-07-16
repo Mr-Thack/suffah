@@ -10,8 +10,10 @@
   import { Button } from '$lib/components/ui/button'
   import { Badge } from '$lib/components/ui/badge'
   import { Input } from '$lib/components/ui/input'
+  import { Label } from '$lib/components/ui/label'
   import * as Select from '$lib/components/ui/select'
   import * as Form from '$lib/components/ui/form'
+  import { Checkbox } from '$lib/components/ui/checkbox'
   import {
     AlertDialog,
     AlertDialogAction,
@@ -28,6 +30,7 @@
   import { db } from '$lib/db.js'
   import { onMount } from 'svelte'
   import ParentAlert from '$lib/components/ParentAlert.svelte'
+  import PaymentAlert from '$lib/components/PaymentAlert.svelte'
   import {
     PUBLIC_SQUARE_APP_ID,
     PUBLIC_SQUARE_LOCATION_ID,
@@ -44,12 +47,14 @@
       }
 
       toast.success('Registration submitted successfully!')
+      showPaymentAlert = true
     },
   })
 
   const { form: formData, enhance } = form
   let showParentWarning = $state(false)
   let showPaymentAlert = $state(false)
+  let termsAccepted = $state(false)
   let formEl: HTMLFormElement = $state()
 
   const childrenCost = [100, 160, 200]
@@ -84,9 +89,14 @@
     !!($formData.address && $formData.city && $formData.zipCode),
   )
   const completedForm = $derived(
-    (fatherComplete || motherComplete) && addressComplete && childrenComplete,
+    (fatherComplete || motherComplete) &&
+      addressComplete &&
+      childrenComplete &&
+      termsAccepted &&
+      $formData.cardHolderName,
   )
 
+  // TODO: MAKE THIS DYNAMIC
   const pricingTiers = $derived([
     { count: 1, price: 100, label: '1 Child', isActive: numChildren === 1 },
     { count: 2, price: 160, label: '2 Children', isActive: numChildren === 2 },
@@ -140,6 +150,10 @@
     showParentWarning = false
     $formData.confirmParent = true
     formEl.requestSubmit()
+  }
+
+  function proceedPayment() {
+    showPaymentAlert = false
   }
 
   let currentTerm: { name: string; length: number } | null = $state(null)
@@ -516,7 +530,7 @@
             {/each}
           </div>
 
-          <div id="card-container" class="my-4"></div>
+          <div id="card-container" class="mt-16"></div>
 
           <input type="hidden" name="nonce" bind:value={$formData.nonce} />
           <Form.Field {form} name="cardHolderName">
@@ -533,7 +547,38 @@
             <Form.FieldErrors />
           </Form.Field>
 
-          <div class="space-y-4">
+          <div class="mt-24">
+            <div class="prose dark:prose-invert text-l text-center">
+              By submitting this form, you acknowledge:
+              <ol>
+                <li>
+                  When you enroll, you are signing up for the
+                  <strong>entire program</strong> (not just month-to-month)
+                </li>
+                <li>
+                  <strong>No refunds</strong> will be given — even if your child(ren)
+                  stop(s) coming.
+                </li>
+                <li>
+                  <strong>Monthly payments will still be charged</strong>, even
+                  if your child does not attend.
+                </li>
+                <li>
+                  <strong>You cannot cancel or withdraw</strong> from the program
+                  after enrolling
+                </li>
+                <li>
+                  Your card will be
+                  <strong>automatically charged each month</strong>.
+                </li>
+              </ol>
+            </div>
+            <div class="my-4 text-xl text-center flex items-center gap-3">
+              <Checkbox bind:checked={termsAccepted} id="terms" />
+              <Label for="terms" class="text-lg"
+                >We accept these terms and conditions</Label>
+            </div>
+
             <Button
               type="submit"
               size="lg"
@@ -541,11 +586,6 @@
               disabled={!completedForm}>
               Pay • ${totalCost}
             </Button>
-
-            <p class="text-xs text-muted-foreground text-center">
-              By submitting this form, you acknowledge any changes must be made
-              by contacting Administration.
-            </p>
           </div>
         </CardContent>
       </Card>
@@ -554,3 +594,4 @@
 </div>
 
 <ParentAlert bind:open={showParentWarning} onProceed={proceedIncomplete} />
+<PaymentAlert bind:open={showPaymentAlert} onProceed={proceedPayment} />

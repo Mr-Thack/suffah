@@ -24,16 +24,10 @@
 <AlertDialog bind:open>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>
-        Redirecting to Payment |
-        <strong class="text-accent font-bold text-xl">
-          SELECT {currentTerm?.length} MONTHS
-        </strong>
-      </AlertDialogTitle>
+      <AlertDialogTitle>Payment Succesfully Submitted</AlertDialogTitle>
       <AlertDialogDescription>
-        You will be taken to the external payment site. Be sure to select the
-        <strong class="text-accent font-bold text-base"
-          >{currentTerm?.length}-month</strong> option.
+        Our team may need to make some adjustments. You will receive a receipt
+        via email once everything is verified.
       </AlertDialogDescription>
     </AlertDialogHeader>
     <CountdownButton onClick={onProceed} />
