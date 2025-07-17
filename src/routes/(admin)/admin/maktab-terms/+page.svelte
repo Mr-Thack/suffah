@@ -143,10 +143,10 @@
         <Input
           id="term-length"
           type="number"
-          min={2}
+          min={1}
           max={12}
           bind:value={termLength}
-          defaultValue={6} />
+          defaultValue={9} />
       </div>
       <!-- This is just for now; later we'll modularize it -->
       <div>
