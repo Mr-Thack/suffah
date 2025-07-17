@@ -40,6 +40,7 @@
   const { data } = $props()
   const form = superForm(data.form, {
     dataType: 'json',
+    resetForm: false,
     onUpdated: ({ form }) => {
       isSubmitting = false
       if (!form.valid) return
