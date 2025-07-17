@@ -35,6 +35,7 @@
     PUBLIC_SQUARE_APP_ID,
     PUBLIC_SQUARE_LOCATION_ID,
   } from '$env/static/public'
+  import { dev } from '$app/environment'
 
   const { data } = $props()
   const form = superForm(data.form, {
@@ -49,6 +50,11 @@
 
       toast.success('Registration submitted successfully!')
       showPaymentAlert = true
+    },
+    onError: ({ result }) => {
+      console.error('Form submission error:', result)
+      isSubmitting = false
+      toast.error('Submission failed. Please try again.')
     },
   })
 
@@ -98,9 +104,24 @@
   )
 
   const pricingTiers = $derived([
-    { count: 1, price: 100, label: '1 Child', isActive: numChildren === 1 },
-    { count: 2, price: 160, label: '2 Children', isActive: numChildren === 2 },
-    { count: 3, price: 200, label: '3+ Children', isActive: numChildren >= 3 },
+    {
+      count: 1,
+      price: childrenCost[0],
+      label: '1 Child',
+      isActive: numChildren === 1,
+    },
+    {
+      count: 2,
+      price: childrenCost[1],
+      label: '2 Children',
+      isActive: numChildren === 2,
+    },
+    {
+      count: 3,
+      price: childrenCost[2],
+      label: '3+ Children',
+      isActive: numChildren >= 3,
+    },
   ])
 
   function addChild() {
@@ -116,35 +137,134 @@
     }
   }
 
+  let tokenizationAttempts = 0
+  const MAX_ATTEMPTS = 3
+  const TIMEOUT = 10000 / MAX_ATTEMPTS
+  async function tokenizeWithTimeoutAndRetry() {
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        console.log(`Tokenization attempt ${attempt}/${MAX_ATTEMPTS}`)
+
+        // Race both of these promises
+        const tokenizationPromise = card.tokenize()
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(
+            () => reject(new Error(`Tokenization timeout after ${TIMEOUT}ms`)),
+            TIMEOUT,
+          )
+        })
+
+        const result = await Promise.race([tokenizationPromise, timeoutPromise])
+
+        // Validate the result
+        if (!result || typeof result !== 'object') {
+          throw new Error('Invalid tokenization result')
+        }
+
+        const { status, token } = result
+
+        if (status === 'OK' && token) {
+          console.log(
+            `Tokenization successful on attempt ${attempt}/${MAX_ATTEMPTS}`,
+          )
+          return { status, token }
+        } else {
+          console.log(
+            `Tokenization failed on attempt ${attempt}/${MAX_ATTEMPTS}:`,
+            {
+              status,
+              token,
+            },
+          )
+          if (attempt === MAX_ATTEMPTS) {
+            console.error('REACHED MAX SQUARE ATTEMPTS!')
+            console.error('SQUARE ISSUE')
+            return { status: status || 'FAILED', token: token || null }
+          }
+          // Wait before retry
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+        }
+      } catch (error) {
+        console.error(`Tokenization attempt ${attempt} failed:`, error)
+
+        if (attempt === MAX_ATTEMPTS) {
+          throw error
+        }
+
+        // Wait before retry (exponential backoff)
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt))
+      }
+    }
+  }
+
+  let cardReady = $state(false)
   let isSubmitting = $state(false)
   async function handleSubmit(e: Event) {
+    e.preventDefault()
+
     if (isSubmitting) {
       return
     }
+
     isSubmitting = true
 
-    event.preventDefault()
+    if (!cardReady || !card) {
+      isSubmitting = false
+      toast.error(
+        'Payment system loading. Please wait a few seconds and try again.',
+      )
+      return
+    }
 
     const fatherFilled =
       $formData.father.name && $formData.father.phone && $formData.father.email
     const motherFilled =
       $formData.mother.name && $formData.mother.phone && $formData.mother.email
 
-    if (!completedForm) return toast.error('Complete the form first.')
+    if (!completedForm) {
+      isSubmitting = false
+      toast.error('Complete the form first.')
+      return
+    }
 
     if (!(fatherFilled && motherFilled) && !$formData.confirmParent) {
       showParentWarning = true
       isSubmitting = false
-    } else {
-      let { status, token } = await card.tokenize()
-      console.log(status, token)
-      if (status !== 'OK') {
-        return toast.error('Card info invalid—please try again.')
-      } else {
-        $formData.nonce = token
+      return
+    }
 
-        toast.info('Checking Information...')
-        formEl.requestSubmit()
+    toast.info('Processing Payment...')
+
+    try {
+      let { status, token } = await tokenizeWithTimeoutAndRetry()
+
+      console.log('FINAL Tokenization Result:', status, token)
+
+      if (status !== 'OK' || !token) {
+        isSubmitting = false
+        toast.error('Card info invalid. Please try again.')
+        return
+      }
+
+      $formData.nonce = token
+
+      toast.info('Checking Information...')
+
+      // Delay to ensure nonce has actually been set
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      formEl.requestSubmit()
+    } catch (error) {
+      console.error('Payment processing error:', error)
+
+      if (error.message.includes('timeout')) {
+        toast.error('Payment processing timed out. Please try again.')
+      } else {
+        toast.error('Payment processing failed. Please try again.')
+      }
+    } finally {
+      // Only reset isSubmitting if we're not proceeding to form submission
+      if (!$formData.nonce) {
+        isSubmitting = false
       }
     }
   }
@@ -157,6 +277,9 @@
 
   function proceedPayment() {
     showPaymentAlert = false
+    if (!dev) {
+      window.location.href = 'https://masjidsuffah.com/'
+    }
   }
 
   let currentTerm: {
@@ -168,55 +291,103 @@
   } | null = $state(null)
   let termStatus: 'loading' | 'closed' | 'ok' = $state('loading')
 
-  let card = null
+  let card = $state(null)
 
   async function loadSquare() {
-    console.log('Loading Square')
-    const s = document.createElement('script')
-    s.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
-    s.onload = async () => {
-      setTimeout(async () => {
-        let payments = Square.payments(
-          PUBLIC_SQUARE_APP_ID,
-          PUBLIC_SQUARE_LOCATION_ID,
-        )
-        card = await payments.card()
-        await card.attach('#card-container')
-        console.log('Square Attached')
-      }, 200)
+    return new Promise((resolve, reject) => {
+      // Check if Square is already loaded
+      if (window.Square) {
+        console.log('Square already loaded, initializing...')
+        initializeSquarePayments().then(resolve).catch(reject)
+        return
+      }
+
+      console.log('Loading Square SDK...')
+      const script = document.createElement('script')
+      script.src = 'https://sandbox.web.squarecdn.com/v1/square.js'
+      script.async = true
+
+      script.onload = async () => {
+        try {
+          console.log('Square SDK loaded, initializing payments...')
+          await initializeSquarePayments()
+          resolve()
+        } catch (error) {
+          console.error('Failed to initialize Square payments:', error)
+          reject(error)
+        }
+      }
+
+      script.onerror = (error) => {
+        console.error('Failed to load Square SDK:', error)
+        reject(new Error('Failed to load Square SDK'))
+      }
+
+      document.head.appendChild(script)
+    })
+  }
+
+  async function initializeSquarePayments() {
+    // Wait for Square to be fully available
+    let attempts = 0
+    while (!window.Square && attempts < 50) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      attempts++
     }
-    document.body.appendChild(s)
+
+    if (!window.Square) {
+      throw new Error('Square SDK not available after waiting')
+    }
+
+    const payments = Square.payments(
+      PUBLIC_SQUARE_APP_ID,
+      PUBLIC_SQUARE_LOCATION_ID,
+    )
+    card = await payments.card()
+    await card.attach('#card-container')
+
+    cardReady = true
+    console.log('Square payments initialized successfully')
   }
 
   onMount(async () => {
-    const { data: cfg, error: e1 } = await db
-      .from('config')
-      .select('value')
-      .eq('key', 'active_term_id')
-      .single()
+    try {
+      const { data: cfg, error: e1 } = await db
+        .from('config')
+        .select('value')
+        .eq('key', 'active_term_id')
+        .single()
 
-    if (e1 || !cfg?.value) {
+      if (e1 || !cfg?.value) {
+        termStatus = 'closed'
+        return
+      }
+
+      const { data: term, error: e2 } = await db
+        .from('maktab_term')
+        .select('name, length, p1, p2, p3')
+        .eq('id', +cfg.value)
+        .single()
+
+      if (!term) {
+        termStatus = 'closed'
+      } else {
+        currentTerm = term
+
+        childrenCost[0] = term.p1
+        childrenCost[1] = term.p2
+        childrenCost[2] = term.p3
+
+        termStatus = 'ok'
+        await loadSquare()
+      }
+    } catch (error) {
+      console.error('Initialization Error', error)
       termStatus = 'closed'
-      return
-    }
-
-    const { data: term, error: e2 } = await db
-      .from('maktab_term')
-      .select('name, length, p1, p2, p3')
-      .eq('id', +cfg.value)
-      .single()
-
-    if (!term) {
-      termStatus = 'closed'
-    } else {
-      currentTerm = term
-
-      pricingTiers[0].price = term.p1
-      pricingTiers[1].price = term.p2
-      pricingTiers[2].price = term.p3
-
-      termStatus = 'ok'
-      await loadSquare()
+      toast.error(
+        'Dev/Admin probably updating system. Something went wrong with init. Error code:',
+        error,
+      )
     }
   })
 </script>
@@ -240,7 +411,7 @@
       {:else if termStatus === 'closed'}
         Registration is currently closed.
       {:else}
-        Maktab Registration – {currentTerm.name} ({currentTerm.length} Months)
+        Maktab Registration – {currentTerm.name}
       {/if}
     </h1>
 
@@ -589,16 +760,23 @@
             </ol>
             <div class="my-4 text-xl text-center flex items-center gap-3">
               <Checkbox bind:checked={termsAccepted} id="terms" />
-              <Label for="terms" class="text-lg"
-                >We accept these terms and conditions</Label>
+              <Label for="terms" class="text-lg">
+                We accept these terms and conditions
+              </Label>
             </div>
 
             <Button
               type="submit"
               size="lg"
               class="w-full text-lg py-6"
-              disabled={!completedForm || isSubmitting}>
-              Pay • ${totalCost}
+              disabled={!completedForm || isSubmitting || !cardReady}>
+              {#if !cardReady}
+                Loading payment system...
+              {:else if isSubmitting}
+                Processing...
+              {:else}
+                Pay • ${totalCost}
+              {/if}
             </Button>
           </div>
         </CardContent>
