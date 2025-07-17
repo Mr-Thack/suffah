@@ -1,5 +1,5 @@
 import { marked } from 'marked'
-import { SENDER_EMAIL } from '$env/static/private'
+import { FORWARD_TO_EMAIL } from '$env/static/private'
 
 // Types
 export interface RegistrationData {
@@ -152,7 +152,7 @@ ${childEntries}
 
 ---
 
-For assistance, **reply** or contact **${SENDER_EMAIL}**.
+For assistance, **reply** or contact **${FORWARD_TO_EMAIL}**.
 
 **Barakallahu Feekum,**  
 **Masjid Suffah Team**`
