@@ -7,6 +7,7 @@
   import * as AlertDialog from '$lib/components/ui/alert-dialog'
   import * as Select from '$lib/components/ui/select'
   import { toast } from 'svelte-sonner'
+  import { dev } from '$app/environment'
 
   // State
   let terms = $state([] as { id: number; name: string; length: number }[])
@@ -37,7 +38,7 @@
     const { data: cfgData, error: cfgErr } = await db
       .from('config')
       .select('value')
-      .eq('key', 'active_term_id')
+      .eq('key', (dev ? 'dev_' : '') + 'active_term_id')
       .single()
     if (cfgErr && cfgErr.code !== 'PGRST116') {
       toast.error('Error loading active term: ' + cfgErr.message)
@@ -105,9 +106,10 @@
       return
     }
     loading = true
-    const { error } = await db
-      .from('config')
-      .upsert({ key: 'active_term_id', value: String(activeTermId) })
+    const { error } = await db.from('config').upsert({
+      key: (dev ? 'dev_' : '') + 'active_term_id',
+      value: String(activeTermId),
+    })
     loading = false
     if (error) {
       toast.error('Failed to save active term: ' + error.message)

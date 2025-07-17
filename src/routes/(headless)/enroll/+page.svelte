@@ -305,7 +305,7 @@
 
       console.log('Loading Square SDK...')
       const script = document.createElement('script')
-      script.src = 'https://web.squarecdn.com/v1/square.js'
+      script.src = `https://${dev ? 'sandbox.' : ''}web.squarecdn.com/v1/square.js`
       script.async = true
 
       script.onload = async () => {
@@ -356,7 +356,7 @@
       const { data: cfg, error: e1 } = await db
         .from('config')
         .select('value')
-        .eq('key', 'active_term_id')
+        .eq('key', (dev ? 'dev_' : '') + 'active_term_id')
         .single()
 
       if (e1 || !cfg?.value) {
@@ -412,7 +412,7 @@
       {:else if termStatus === 'closed'}
         Registration is currently closed.
       {:else}
-        Maktab Registration – {termInfo.name}
+        Maktab Year {termInfo.name} Registration Form
       {/if}
     </h1>
 

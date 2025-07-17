@@ -148,7 +148,7 @@ export const actions = {
     const { data: cfg, error: cfgErr } = await db
       .from('config')
       .select('value')
-      .eq('key', 'active_term_id')
+      .eq('key', (dev ? 'dev_' : '') + 'active_term_id')
       .single()
     if (cfgErr || !cfg?.value) {
       console.error('Error fetching active term:', cfgErr)
