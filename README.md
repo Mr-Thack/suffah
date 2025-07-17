@@ -2,6 +2,12 @@
 
 This is just a modernized version of the current Masjid Suffah Website.
 
+## Setup
+1) See Tech Stack below for build information
+2) You should just have to run ``bun run dev`` and push to the Git repo
+3) Set up Netlify to auto read from pushes to your Git repo on Github or something and auto build and auto publish for you
+4) Also, don't forget to set the ``.env.local`` (copy from ``.env.example``) with all required values
+
 ## Philosophy
 
 The goal is to make **scale this to community needs** with **as few movings parts as possible**.
