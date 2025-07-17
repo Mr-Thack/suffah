@@ -8,7 +8,7 @@ import { v4 as uuid } from 'uuid'
 import { dev } from '$app/environment'
 import { square } from '$lib/square.ts'
 import { PUBLIC_SQUARE_LOCATION_ID } from '$env/static/public'
-import { sendEmail } from '$lib/mail.ts'
+// import { sendEmail } from '$lib/mail.ts'
 
 // Zod schemas for parents and children
 const parentSchemaRaw = z
@@ -294,7 +294,7 @@ export const actions = {
     }
 
     // 9) Send Email. There shouldn't be any errors, and I'm out of time for figuring out how to deal with them anyways
-    await sendEmail(form.data, termInfo)
+    // await sendEmail(form.data, termInfo)
 
     // 10) Success
     return message(form, { success: true, subscriptionId: subscription.id })
