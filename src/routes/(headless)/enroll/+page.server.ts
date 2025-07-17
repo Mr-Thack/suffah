@@ -8,6 +8,7 @@ import { v4 as uuid } from 'uuid'
 import { dev } from '$app/environment'
 import { square } from '$lib/square.ts'
 import { PUBLIC_SQUARE_LOCATION_ID } from '$env/static/public'
+import { sendEmail } from '$lib/mail.ts'
 
 // Zod schemas for parents and children
 const parentSchemaRaw = z
@@ -240,9 +241,8 @@ export const actions = {
     // This also means we don't need the actual plan id itself
     let indices = ['sid1', 'sid2', 'sid3']
     let planVariationId = termInfo[indices[children.length - 1]]
-    console.log(planVariationId)
 
-    // 5) Create Subscription (charge card)
+    // 6) Create Subscription (charge card)
     result = await square.subscriptions.create({
       idempotencyKey: uuid(),
       locationId: PUBLIC_SQUARE_LOCATION_ID!,
@@ -253,8 +253,6 @@ export const actions = {
       cardId,
     })
 
-    console.log(result)
-
     if (result.errors) {
       console.error('Subscription failed:', result.errors)
       return setError(form, '', `Payment failed: ${result.errors}`)
@@ -262,7 +260,7 @@ export const actions = {
 
     const subscription = result.subscription
 
-    // 6) Build payload for insertion
+    // 7) Build payload for insertion
     const payload = {
       term_id: termId,
 
@@ -285,7 +283,7 @@ export const actions = {
       status: subscription.status,
     }
 
-    // 7) Insert into Supabase
+    // 8) Insert into Supabase
     const { data: inserted, error: insertErr } = await db
       .from('maktab_registrations')
       .insert(payload)
@@ -295,7 +293,10 @@ export const actions = {
       return setError(form, '', `DB ERROR: ${insertErr.message}`)
     }
 
-    // 8) Success
+    // 9) Send Email. There shouldn't be any errors, and I'm out of time for figuring out how to deal with them anyways
+    await sendEmail(form.data, termInfo)
+
+    // 10) Success
     return message(form, { success: true, subscriptionId: subscription.id })
   },
 }

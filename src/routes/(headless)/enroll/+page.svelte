@@ -67,7 +67,7 @@
 
   const childrenCost = [100, 160, 200]
   const numChildren = $derived($formData.children.length)
-  const totalCost = $derived(childrenCost[numChildren - 1])
+  const totalCost = $derived(childrenCost[Math.min(numChildren - 1, 2)])
 
   const isChildComplete = (child) => {
     if (!child.name || !child.dob || !child.sex) return false
@@ -283,7 +283,7 @@
     }
   }
 
-  let currentTerm: {
+  let termInfo: {
     name: string
     length: number
     p1: number
@@ -373,7 +373,7 @@
       if (!term) {
         termStatus = 'closed'
       } else {
-        currentTerm = term
+        termInfo = term
 
         childrenCost[0] = term.p1
         childrenCost[1] = term.p2
@@ -412,7 +412,7 @@
       {:else if termStatus === 'closed'}
         Registration is currently closed.
       {:else}
-        Maktab Registration – {currentTerm.name}
+        Maktab Registration – {termInfo.name}
       {/if}
     </h1>
 
@@ -739,8 +739,8 @@
             <ol>
               <li>
                 When you enroll, you are signing up for the
-                <strong>entire program ({currentTerm.length} months)</strong> (not
-                just month-to-month)
+                <strong>entire program ({termInfo.length} months)</strong> (not just
+                month-to-month)
               </li>
               <li>
                 <strong>No refunds</strong> will be given — even if your child(ren)
@@ -776,7 +776,7 @@
               {:else if isSubmitting}
                 Processing...
               {:else}
-                Pay • ${totalCost}
+                • Pay ${totalCost}/Month • For {termInfo.length} Months •
               {/if}
             </Button>
           </div>
