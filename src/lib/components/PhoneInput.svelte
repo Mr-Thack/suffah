@@ -54,6 +54,21 @@
       (a, b) => b.length - a.length,
     )
 
+    // For ambiguous cases, check if it could be a US number first
+    if (!phoneNumber.trim().startsWith('+') && currentCountryCode === '1') {
+      // Check if the number could be a valid US number (10 digits)
+      if (cleanNumber.length === 10 || cleanNumber.length === 11) {
+        // If it's 11 digits and starts with 1, it's likely US with country code
+        if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
+          return '1'
+        }
+        // If it's 10 digits, assume US
+        if (cleanNumber.length === 10) {
+          return '1'
+        }
+      }
+    }
+
     for (const code of sortedCodes) {
       if (cleanNumber.startsWith(code)) {
         return code
