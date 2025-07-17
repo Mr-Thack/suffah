@@ -1,85 +1,93 @@
 import nodemailer from 'nodemailer'
+import { marked } from 'marked'
 import { GMAIL_USER, GMAIL_APP_PASSWORD } from '$env/static/private'
 
 if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-  throw new Error('Missing GMail environment variables')
+  throw new Error('Missing Gmail environment variables')
 }
 
-function generateEmailContent(registrationData: any, termInfo: any) {
+/**
+ * Generate the registration confirmation email in Markdown format
+ */
+function generateEmailContent(registrationData, termInfo) {
   const { father, mother, children, address, city, zipCode } = registrationData
 
-  // Calculate total cost
+  // Gather parent emails and names
+  const parentEmails = []
+  const parentFirstNames = []
+  if (father?.email) {
+    parentEmails.push(father.email)
+    if (father.name) parentFirstNames.push(father.name.split(' ')[0])
+  }
+  if (mother?.email) {
+    parentEmails.push(mother.email)
+    if (mother.name) parentFirstNames.push(mother.name.split(' ')[0])
+  }
+
+  const greetingNames = parentFirstNames.join(' and ')
+
+  // Cost calculation
   const childrenCost = [termInfo.p1, termInfo.p2, termInfo.p3]
   const numChildren = children.length
-  const totalCost = childrenCost[Math.min(numChildren - 1, 2)]
+  const monthlyCost = childrenCost[Math.min(numChildren - 1, 2)]
+  const totalProgramCost = monthlyCost * termInfo.length
 
-  return `
-  Dear Parent/Guardian,
+  // List of child entries
+  const childEntries = children
+    .map(
+      (child, idx) => `${idx + 1}. **${child.name}**
+- Date of Birth: ${new Date(child.dob).toLocaleDateString()}
+- Gender: ${child.sex}`,
+    )
+    .join('')
 
-  Thank you for registering your child${numChildren === 1 ? '' : 'ren'} for the Maktab Program at Masjid Suffah.
+  // ENSURE THERE ARE NO SPACES OR ELSE MARKDOWN THINKS THIS IS CODE
+  return `# Assalamu Alaikum Dear ${greetingNames},
 
-      REGISTRATION CONFIRMATION
-    =========================
+---
 
-    Term Information:
-  - Program: ${termInfo.name}
-  - Duration: ${termInfo.length} Months
-  - Monthly Payment: $${totalCost}
+## Program Details
 
-  Registered Children:
-    ${children
-      .map(
-        (child: any, index: number) => `
-        ${index + 1}. ${child.name}
-        - Date of Birth: ${new Date(child.dob).toLocaleDateString()}
-        - Gender: ${child.sex}
-        `,
-      )
-      .join('')}
+- **Program:** ${termInfo.name}
+- **Duration:** ${termInfo.length} Months
 
-      Parent Information:
-      ${father?.name ? `- Father: ${father.name} (${father.email}, ${father.phone})` : ''}
-      ${mother?.name ? `- Mother: ${mother.name} (${mother.email}, ${mother.phone})` : ''}
+## Student Information
 
-      Address:
-      ${address}
-      ${city}, ${zipCode}
+${childEntries}
 
-      Payment Information:
-      - Total Children: ${numChildren}
-      - Monthly Payment: $${totalCost}
-      - Program Duration: ${termInfo.length} months
-      - Total Program Cost: $${totalCost * termInfo.length}
+## Payment Summary
 
-      IMPORTANT REMINDERS:
-      - You are enrolled for the entire ${termInfo.length}-month program
-      - Monthly payments will be automatically charged
-      - No refunds can be given
-      - Monthly payments continue even if your child does not attend
+- **Monthly Payment:** $${monthlyCost}
+- **Total Program Cost (${termInfo.length} months):** $${totalProgramCost}
 
-        If you have any questions, please contact Masjid Suffah.
+### Terms & Conditions
 
-          Barakallahu feekum,
-        Masjid Suffah Maktab Team
+By having submitted the form, you acknowledged:
+1. When you enrolled, you signed up for the **entire program (2 months)** (not just month-to-month)
+2. **No refunds** can be given — **even if your child(ren) stop(s) attending**.
+3. **Monthly payments** will still be charged, **even if your child does not attend**.
+4. You **cannot cancel or withdraw** from the program.
+5. Your card will be **automatically charged each month**.
 
-        ---
-          This is an automated confirmation email.
-          `.trim()
+---
+
+For any assistance, **reply** to this email or contact us at **${GMAIL_USER}**
+
+**Barakallahu feekum,**  
+**Masjid Suffah Maktab Team**`
 }
 
+/**
+ * Send confirmation email to parents
+ */
 export async function sendEmail(registrationData, termInfo) {
-  // Generate email content
-  const emailContent = generateEmailContent(registrationData, termInfo)
-
-  // Collect parent emails
   const parentEmails = []
-  if (registrationData.father?.email) {
+  if (registrationData.father?.email)
     parentEmails.push(registrationData.father.email)
-  }
-  if (registrationData.mother?.email) {
+  if (registrationData.mother?.email)
     parentEmails.push(registrationData.mother.email)
-  }
 
+  // Create transporter
   const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -88,15 +96,36 @@ export async function sendEmail(registrationData, termInfo) {
     },
   })
 
-  const childrenNames = registrationData.children
-    .map((child) => child.name)
-    .join(', ')
+  // Generate content
+  const markdownContent = generateEmailContent(registrationData, termInfo)
+  const cleanMd = markdownContent
+    .split('\n')
+    .map((line) => line.replace(/^\s+/, '')) // strip leading whitespace
+    .join('\n')
+    .trim()
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"/></head>
+<body>
+${marked(cleanMd)}
+</body>
+</html>`
 
   const mailOptions = {
-    from: process.env.GMAIL_USER,
+    from: `Masjid Suffah <${GMAIL_USER}>`, // sender address
+    replyTo: parentEmails.join(', '), // replies go to both parents
     to: parentEmails.join(', '),
-    subject: `Maktab Registration Confirmation - ${termInfo.name} - ${childrenNames}`,
-    text: emailContent,
+    subject: `Maktab Registration Confirmation | Masjid Suffah`,
+    text: markdownContent, // plain-text fallback
+    html: htmlContent, // rendered HTML
   }
-  await transporter.sendMail(mailOptions)
+
+  try {
+    const info = await transporter.sendMail(mailOptions)
+    console.log('Email sent:', info, markdownContent)
+    return info
+  } catch (err) {
+    console.error('Email delivery error:', err)
+    throw err
+  }
 }

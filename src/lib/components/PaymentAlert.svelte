@@ -24,10 +24,14 @@
 <AlertDialog bind:open>
   <AlertDialogContent>
     <AlertDialogHeader>
-      <AlertDialogTitle>Payment Succesfully Submitted</AlertDialogTitle>
+      <AlertDialogTitle>
+        Payment Succesfully Submitted + Registration Complete
+      </AlertDialogTitle>
       <AlertDialogDescription>
-        Our team may need to make some adjustments. You will receive a receipt
-        via email once everything is verified.
+        <p>
+          A confirmation email has been sent to you. Please reply to that email
+          if you have any questions or need to update your information.
+        </p>
       </AlertDialogDescription>
     </AlertDialogHeader>
     <CountdownButton onClick={onProceed} />

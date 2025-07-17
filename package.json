@@ -48,6 +48,7 @@
 		"@zxcvbn-ts/language-en": "^3.0.2",
 		"libphonenumber-js": "^1.12.9",
 		"lucide-svelte": "^0.522.0",
+		"marked": "^16.0.0",
 		"maska": "^3.1.1",
 		"mode-watcher": "^1.0.8",
 		"nodemailer": "^7.0.5",
