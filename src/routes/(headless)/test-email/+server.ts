@@ -3,11 +3,6 @@ import { dev } from '$app/environment'
 import { sendTestEmail } from '$lib/email.js'
 
 export async function GET() {
-  // Security: Only allow in development
-  if (!dev) {
-    return json({ error: 'Not found' }, { status: 404 })
-  }
-
   try {
     // Replace with your actual test email
     const testEmail = 'mr_thack@yahoo.com'
