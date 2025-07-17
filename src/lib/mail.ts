@@ -6,6 +6,12 @@ if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
   throw new Error('Missing Gmail environment variables')
 }
 
+// This is to ensure it looks the same, regardless of server timezone
+function formatDate(dateString): string {
+  const [year, month, day] = dateString.split('-')
+  return new Date(year, month - 1, day).toLocaleDateString()
+}
+
 /**
  * Generate the registration confirmation email in Markdown format
  */
@@ -36,7 +42,7 @@ function generateEmailContent(registrationData, termInfo) {
   const childEntries = children
     .map(
       (child, idx) => `${idx + 1}. **${child.name}**
-- Date of Birth: ${new Date(child.dob).toLocaleDateString()}
+- Date of Birth: ${formatDate(child.dob)}
 - Gender: ${child.sex}`,
     )
     .join('')
