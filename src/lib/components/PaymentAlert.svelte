@@ -29,8 +29,9 @@
       </AlertDialogTitle>
       <AlertDialogDescription>
         <p>
-          A confirmation email has been sent to you. Please reply to that email
-          if you have any questions or need to update your information.
+          You will receive a confirmation email within 24 hours. Please reply to
+          that email if you have any questions or need to update your
+          information.
         </p>
       </AlertDialogDescription>
     </AlertDialogHeader>
