@@ -5,6 +5,7 @@ import {
 } from '$env/static/public'
 import { SQUARE_ACCESS_TOKEN } from '$env/static/private'
 import { v4 as uuid } from 'uuid'
+import { dev } from '$app/environment'
 
 if (
   !PUBLIC_SQUARE_APP_ID ||
@@ -17,7 +18,7 @@ if (
 // Simple singleton pattern
 function createSquareClient() {
   return new SquareClient({
-    environment: SquareEnvironment.Sandbox,
+    environment: dev ? SquareEnvironment.Sandbox : SquareEnvironment.Production,
     token: SQUARE_ACCESS_TOKEN,
   })
 }
