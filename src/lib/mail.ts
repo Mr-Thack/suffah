@@ -76,43 +76,26 @@ function generateEmailContent(registrationData, termInfo) {
                     **Masjid Suffah Team**`
 }
 
-export async function sendEmail(registrationData, termInfo) {
-  // 1️⃣ Instantiate and authenticate
+// Actual Email sending function
+export async function sendRawEmail(
+  recipients: string[],
+  subject: string,
+  htmlContent: string,
+  textContent: string,
+) {
   const emailAPI = new TransactionalEmailsApi()
   emailAPI.authentications.apiKey.apiKey = BREVO_API_KEY
 
-  // 2️⃣ Prepare recipients
-  const to = []
-  if (registrationData.father?.email)
-    to.push({ email: registrationData.father.email })
-  if (registrationData.mother?.email)
-    to.push({ email: registrationData.mother.email })
+  const to = recipients.map((email) => ({ email }))
 
-  // 3️⃣ Build contents
-  const markdown = generateEmailContent(registrationData, termInfo)
-  const cleanMd = markdown
-    .split('\n')
-    .map((l) => l.replace(/^\s+/, ''))
-    .join('\n')
-    .trim()
-  const html = `<!DOCTYPE html>
-  <html lang="en">
-  <head><meta charset="UTF-8"/></head>
-  <body>
-  ${marked(cleanMd)}
-  </body>
-  </html>`
-
-  // 4️⃣ Create SendSmtpEmail message
   const message = new SendSmtpEmail()
   message.sender = { email: SENDER_EMAIL, name: 'Masjid Suffah' }
   message.to = to
   message.replyTo = { email: SENDER_EMAIL, name: 'Masjid Suffah' }
-  message.subject = 'Maktab Registration Confirmation | Masjid Suffah'
-  message.htmlContent = html
-  message.textContent = cleanMd
+  message.subject = subject
+  message.htmlContent = htmlContent
+  message.textContent = textContent
 
-  // 5️⃣ Send it
   try {
     const resp = await emailAPI.sendTransacEmail(message)
     console.log('Email sent:', resp.body)
@@ -121,4 +104,32 @@ export async function sendEmail(registrationData, termInfo) {
     console.error('Send error:', err.body || err)
     throw err
   }
+}
+
+export async function sendEmail(registrationData, termInfo) {
+  // Prepare recipients
+  const recipients = []
+  if (registrationData.father?.email)
+    recipients.push(registrationData.father.email)
+  if (registrationData.mother?.email)
+    recipients.push(registrationData.mother.email)
+
+  // Build contents
+  const markdown = generateEmailContent(registrationData, termInfo)
+  const cleanMd = markdown
+    .split('\n')
+    .map((l) => l.replace(/^\s+/, ''))
+    .join('\n')
+    .trim()
+  const html = `<!DOCTYPE html>
+      <html lang="en">
+      <head><meta charset="UTF-8"/></head>
+      <body>
+      ${marked(cleanMd)}
+      </body>
+      </html>`
+
+  const subject = 'Maktab Registration Confirmation | Masjid Suffah'
+
+  return await sendRawEmail(recipients, subject, html, cleanMd)
 }
