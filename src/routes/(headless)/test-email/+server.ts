@@ -1,55 +1,24 @@
 import { json } from '@sveltejs/kit'
-import { sendRawEmail } from '$lib/mail.ts'
 import { dev } from '$app/environment'
+import { sendTestEmail } from '$lib/email.js'
 
 export async function GET() {
-  // Block access in production
+  // Security: Only allow in development
   if (!dev) {
     return json({ error: 'Not found' }, { status: 404 })
   }
 
   try {
-    // Test email content
-    const testRecipients = ['mr_thack@yahoo.com'] // Replace with your actual test email
-    const testSubject = 'Test Email - Masjid Suffah System'
-    const testHtml = `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head><meta charset="UTF-8"/></head>
-    <body>
-    <h1>Email Test Successful</h1>
-    <p>This is a test email to verify the email system is working correctly.</p>
-    <p>Sent at: ${new Date().toLocaleString()}</p>
-    <hr>
-    <p><strong>Barakallahu Feekum,</strong><br>
-    <strong>Masjid Suffah Team</strong></p>
-    </body>
-    </html>
-    `
-    const testText = `
-    Email Test Successful
+    // Replace with your actual test email
+    const testEmail = 'mr_thack@yahoo.com'
 
-    This is a test email to verify the email system is working correctly.
-
-      Sent at: ${new Date().toLocaleString()}
-
-    ---
-
-      Barakallahu Feekum,
-    Masjid Suffah Team
-    `
-
-    const result = await sendRawEmail(
-      testRecipients,
-      testSubject,
-      testHtml,
-      testText,
-    )
+    const result = await sendTestEmail(testEmail)
 
     return json({
       success: true,
-      message: 'Email sent successfully',
-      result: result,
+      message: 'Test email sent successfully',
+      messageId: result.messageId,
+      sentTo: testEmail,
     })
   } catch (error) {
     console.error('Email test failed:', error)
@@ -57,8 +26,9 @@ export async function GET() {
     return json(
       {
         success: false,
-        error: error.message || 'Unknown error occurred',
-        details: error.body || error,
+        error:
+          error instanceof Error ? error.message : 'Unknown error occurred',
+        timestamp: new Date().toISOString(),
       },
       { status: 500 },
     )
