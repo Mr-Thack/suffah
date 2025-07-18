@@ -62,7 +62,6 @@
   const { form: formData, enhance } = form
   let showParentWarning = $state(false)
   let showPaymentAlert = $state(false)
-  let termsAccepted = $state(false)
   let formEl: HTMLFormElement = $state()
 
   const childrenCost = [100, 160, 200]
@@ -100,7 +99,6 @@
     (fatherComplete || motherComplete) &&
       addressComplete &&
       childrenComplete &&
-      termsAccepted &&
       $formData.cardHolderName,
   )
 
@@ -270,12 +268,6 @@
     }
   }
 
-  function proceedIncomplete() {
-    showParentWarning = false
-    $formData.confirmParent = true
-    formEl.requestSubmit()
-  }
-
   function proceedPayment() {
     showPaymentAlert = false
     if (!dev) {
@@ -391,6 +383,28 @@
       )
     }
   })
+
+  const submitText = $derived(
+    termInfo && totalCost
+      ? `• Pay $${totalCost}/Month • For ${termInfo.length} Months •`
+      : '',
+  )
+
+  const submitButtonText = $derived.by(() => {
+    if (!cardReady) {
+      return 'Loading payment system...'
+    }
+    if (isSubmitting) {
+      return 'Processing...'
+    }
+    return submitText
+  })
+
+  function proceedIncomplete() {
+    showParentWarning = false
+    $formData.confirmParent = true
+    formEl.requestSubmit()
+  }
 </script>
 
 <svelte:head>
@@ -735,49 +749,40 @@
 
           <div
             class="prose mt-20 dark:prose-invert mx-auto items-center text-center">
-            <h1>By submitting this form, you acknowledge:</h1>
+            <h1>When you continue to payment, you agree to the following:</h1>
             <ol>
               <li>
-                When you enroll, you are signing up for the
-                <strong>entire program ({termInfo.length} months)</strong> (not just
-                month-to-month)
+                You are signing up for the
+                <strong>full program ({termInfo.length} months)</strong>, not
+                just one month at a time.
               </li>
               <li>
-                <strong>No refunds</strong> will be given — even if your child(ren)
-                stop(s) coming.
+                <strong>There are no refunds</strong>, even if your child stops
+                coming.
               </li>
               <li>
-                <strong>Monthly payments will still be charged</strong>, even if
+                <strong>You will still be charged each month</strong>, even if
                 your child does not attend.
               </li>
               <li>
-                <strong>You cannot cancel or withdraw</strong> from the program after
-                enrolling
+                <strong>You cannot cancel or leave</strong> the program once you
+                are signed up.
               </li>
               <li>
                 Your card will be
-                <strong>automatically charged each month</strong>.
+                <strong>charged automatically every month</strong>.
               </li>
             </ol>
-            <div class="my-4 text-xl text-center flex items-center gap-3">
-              <Checkbox bind:checked={termsAccepted} id="terms" />
-              <Label for="terms" class="text-lg">
-                We accept these terms and conditions
-              </Label>
-            </div>
-
+            <p class="mt-6 text-lg">
+              By clicking the <em>"{submitText}”</em> button below, you agree to
+              these rules.
+            </p>
             <Button
               type="submit"
               size="lg"
               class="w-full text-lg py-6"
               disabled={!completedForm || isSubmitting || !cardReady}>
-              {#if !cardReady}
-                Loading payment system...
-              {:else if isSubmitting}
-                Processing...
-              {:else}
-                • Pay ${totalCost}/Month • For {termInfo.length} Months •
-              {/if}
+              {submitButtonText}
             </Button>
           </div>
         </CardContent>

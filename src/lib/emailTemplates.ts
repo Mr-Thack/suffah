@@ -158,13 +158,18 @@ ${childEntries}
 - **Monthly Payment:** $${monthlyCost}
 - **Total Program Cost (${termInfo.length} Months):** $${totalCost}
 
+
 ### Terms & Conditions
 
-1. You enrolled for the **entire program (${termInfo.length} months)**.
-2. **No refunds** — even if your child stops attending.
-3. **Monthly payments** continue even if absent.
-4. No cancellation or withdrawal allowed.
-5. Your card is **automatically charged** each month.
+By clicking the **“Pay $${monthlyCost}/Month for ${termInfo.length} Months”** button on our website, you agreed to the following:
+
+1. You enrolled in the **full program (${termInfo.length} months)** — not a month-to-month plan.  
+2. **No refunds** will be given, even if your child stops attending.  
+3. **Monthly payments** will continue as scheduled, even if your child is absent.  
+4. You cannot cancel or withdraw from the program once enrolled.  
+5. Your card will be **automatically charged each month**.
+
+This email is a confirmation of your enrollment and agreement to these terms.
 
 ---
 
