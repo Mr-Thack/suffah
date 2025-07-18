@@ -4,6 +4,7 @@ import {
   SENDER_NAME,
   FORWARD_TO_EMAIL,
   BOT_NAME,
+  LOGGING_EMAIL,
 } from '$env/static/private'
 import {
   generateRegistrationEmail,
@@ -21,7 +22,16 @@ export interface EmailResponse {
 }
 
 // Validation
-if (!(BREVO_API_KEY && SENDER_EMAIL && SENDER_NAME && FORWARD_TO_EMAIL)) {
+if (
+  !(
+    BREVO_API_KEY &&
+    SENDER_EMAIL &&
+    SENDER_NAME &&
+    FORWARD_TO_EMAIL &&
+    BOT_NAME &&
+    LOGGING_EMAIL
+  )
+) {
   throw new Error('Missing Brevo environment variables')
 }
 
@@ -43,21 +53,27 @@ async function sendEmail(emailContent: EmailContent): Promise<EmailResponse> {
     },
   )
 
-  const payload = {
-    // Sender configuration with proper name and email
-    sender: {
-      email: SENDER_EMAIL,
-      name: SENDER_NAME,
-    },
+  // Sender configuration with proper name and email
+  const senderInfo = {
+    email: SENDER_EMAIL,
+    name: SENDER_NAME,
+  }
 
-    // Recipients with names for personalization
+  const payload = {
+    sender: senderInfo,
     to: recipients,
 
     // Reply-to configuration (important for spam scoring)
-    replyTo: {
-      email: SENDER_EMAIL,
-      name: SENDER_NAME,
-    },
+    replyTo: senderInfo,
+
+    // This'll be null anyways if not configured by the generation function,
+    // So, it shouldn't be an issue
+    cc: emailContent.cc,
+
+    // For logging, if set
+    bcc: emailContent.log
+      ? [{ email: LOGGING_EMAIL, name: 'MasjidSuffah Logging' }]
+      : undefined,
 
     // Subject line
     subject: emailContent.subject,

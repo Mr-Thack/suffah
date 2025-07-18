@@ -31,6 +31,8 @@ export interface EmailContent {
   textContent: string
   subject: string
   recipients: EmailRecipient[]
+  log?: boolean
+  cc?: EmailRecipient[]
 }
 
 /**
@@ -54,6 +56,20 @@ function cleanMarkdown(markdown: string): string {
 }
 
 function markdownToHtml(markdown: string): string {
+  const timestamp = new Date().toLocaleString()
+
+  markdown += `
+
+
+---
+
+This email was automatically generated. No further action is required unless noted above.
+
+Either reply to this email or contact ${FORWARD_TO_EMAIL} directly for any assitance.
+
+
+**Sent at:** ${timestamp}`
+
   const cleanMd = cleanMarkdown(markdown)
   return `<!DOCTYPE html>
   <html lang="en">
@@ -152,8 +168,6 @@ ${childEntries}
 
 ---
 
-For assistance, **reply** or contact **${FORWARD_TO_EMAIL}**.
-
 **Barakallahu Feekum,**  
 **Masjid Suffah Team**`
 
@@ -165,6 +179,8 @@ For assistance, **reply** or contact **${FORWARD_TO_EMAIL}**.
     textContent,
     subject: 'Maktab Registration Confirmation | Masjid Suffah',
     recipients,
+    log: true,
+    cc: recipients,
   }
 }
 
@@ -175,18 +191,13 @@ export function generateTestEmail(
   recipient: string,
   name?: string,
 ): EmailContent {
-  const timestamp = new Date().toLocaleString()
-
   const markdown = `# 🚀 Email Test Successful
 
 This is a test email to verify the email system is working correctly.
 
-**Sent at:** ${timestamp}
-
----
 
 **Barakallahu Feekum,**  
-**Masjid Suffah Team**`
+**AbdulMuqeet Mohammed**`
 
   const textContent = cleanMarkdown(markdown)
   const htmlContent = markdownToHtml(markdown)
