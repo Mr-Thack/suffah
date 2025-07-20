@@ -34,6 +34,7 @@
         { href: '/maktab-terms', label: 'Maktab Terms' },
       ],
     },
+    { href: '/display', label: 'Display' },
   ]
   const actionLink = {
     href: '/../setup-admin',
