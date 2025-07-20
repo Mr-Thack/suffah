@@ -1,47 +1,68 @@
 <script lang="ts">
-  // SvelteKit imports for browser detection and page state
+  // SvelteKit imports
   import { browser } from '$app/environment'
   import { page } from '$app/stores'
   import { afterNavigate } from '$app/navigation'
 
-  // Icon imports from lucide-svelte
+  // Icon imports
   import { Menu, Moon, Sun, X } from 'lucide-svelte'
 
-  // ShadCN-Svelte component imports
+  // ShadCN-Svelte components
   import * as NavigationMenu from '$lib/components/ui/navigation-menu'
   import * as Collapsible from '$lib/components/ui/collapsible'
   import { Button } from '$lib/components/ui/button'
 
-  // Mode-watcher for theme toggling
+  // Theme toggler
   import { toggleMode } from 'mode-watcher'
 
+  // Props (Svelte 5)
+  export interface Link {
+    href: string
+    label: string
+  }
+
+  let {
+    navLinks,
+    actionLink,
+    actionLinkDestructive = null,
+  }: {
+    navLinks: Link[]
+    actionLink: Link[]
+    actionLinkDestructive: Link | null
+  } = $props()
+
+  console.log(navLinks)
+
+  // Local state
   let isMobileMenuOpen = $state(false)
   let currentPath = $state('')
 
-  const navLinks = [
-    { href: '/', label: 'Home' },
-    { href: '/maktab', label: 'Maktab' },
-    { href: '/location', label: 'Location' },
-    { href: '/donate', label: 'Donate' },
-  ]
-
-  const actionLink = {
-    href: '/display',
-    label: 'View Prayer Times',
-  }
-
+  // Update currentPath reactively
   $effect(() => {
     currentPath = $page.url.pathname
   })
 
-  // Only close mobile menu if we've renavigated on browser
-  // Forcing from server shouldn't count
+  // Close mobile menu on client-side navigation
   if (browser) {
     afterNavigate(() => {
       isMobileMenuOpen = false
     })
   }
 </script>
+
+<!-- Define reusable actionButton snippet -->
+{#snippet actionButton({ link, destructive, mobile })}
+  <Button
+    size={mobile ? 'default' : 'lg'}
+    data-sveltekit-preload-code="eager"
+    href={link.href}
+    class="text-base font-semibold
+        {destructive ? 'destructive' : ''}
+        {mobile ? 'w-full' : 'hidden md:inline-flex'}
+    ">
+    {link.label}
+  </Button>
+{/snippet}
 
 <Collapsible.Root bind:open={isMobileMenuOpen} class="w-full">
   <header
@@ -50,11 +71,12 @@
       class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
       <div class="flex items-center gap-6">
         <a href="/" class="flex items-center space-x-2">
+          <!-- logo omitted for brevity -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 256 256"
             class="h-6 w-6">
-            <rect width="256" height="256" fill="none"></rect>
+            <rect width="256" height="256" fill="none" />
             <line
               x1="208"
               y1="128"
@@ -64,7 +86,7 @@
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="16"></line>
+              stroke-width="16" />
             <line
               x1="192"
               y1="40"
@@ -74,7 +96,7 @@
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="16"></line>
+              stroke-width="16" />
           </svg>
           <span class="font-bold">Masjid Suffah</span>
         </a>
@@ -96,7 +118,8 @@
       </div>
 
       <div class="flex items-center space-x-4 md:space-x-6">
-        <Button onclick={toggleMode} variant="ghost" size="icon">
+        <!-- Theme toggle -->
+        <Button on:click={toggleMode} variant="ghost" size="icon">
           <Sun
             class="absolute size-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <Moon
@@ -104,14 +127,21 @@
           <span class="sr-only">Toggle theme</span>
         </Button>
 
-        <Button
-          size="lg"
-          data-sveltekit-preload-code="eager"
-          href={actionLink.href}
-          class="hidden md:inline-flex text-base semi-bold">
-          {actionLink.label}
-        </Button>
+        <!-- Primary actions via snippet -->
+        {@render actionButton({
+          link: actionLink,
+          destructive: false,
+          mobile: false,
+        })}
+        {#if actionLinkDestructive}
+          {@render actionButton({
+            link: actionLinkDestructive,
+            destructive: true,
+            mobile: false,
+          })}
+        {/if}
 
+        <!-- Mobile menu trigger -->
         <div class="md:hidden">
           <Collapsible.Trigger asChild>
             {#snippet child({ props })}
@@ -129,6 +159,7 @@
       </div>
     </div>
 
+    <!-- Mobile content -->
     <Collapsible.Content
       class="md:hidden w-full border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div class="grid gap-4">
@@ -142,12 +173,19 @@
           </a>
         {/each}
         <hr class="my-2" />
-        <Button
-          data-sveltekit-preload-code="eager"
-          href={actionLink.href}
-          class="w-full text-base font-semibold">
-          {actionLink.label}
-        </Button>
+        <!-- Mobile actions -->
+        {@render actionButton({
+          link: actionLink,
+          destructive: false,
+          mobile: true,
+        })}
+        {#if actionLinkDestructive}
+          {@render actionButton({
+            link: actionLinkDestructive,
+            destructive: true,
+            mobile: true,
+          })}
+        {/if}
       </div>
     </Collapsible.Content>
   </header>
