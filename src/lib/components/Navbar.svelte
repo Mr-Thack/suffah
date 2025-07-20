@@ -66,13 +66,7 @@
   // Helper function to check if a simple link is active
   function isLinkActive(link: SimpleLink): boolean {
     if ('href' in link) {
-      const fullPath = path + link.href
-      const isActive = currentPath === fullPath
-      // Debug logging - remove this later
-      console.log(
-        `Checking link: ${link.label}, currentPath: ${currentPath}, fullPath: ${fullPath}, isActive: ${isActive}`,
-      )
-      return isActive
+      return (currentPath = path + link.href)
     }
     return false
   }
@@ -293,7 +287,7 @@
         <div class="md:hidden">
           <Collapsible.Trigger asChild>
             {#snippet child({ props })}
-              <Button {...props} variant="ghost" size="bigicon">
+              <Button {...props} variant="ghost" size="icon" class="h-10 w-10">
                 {#if isMobileMenuOpen}
                   <X class="size-7" />
                 {:else}
