@@ -45,11 +45,10 @@
     actionLinkDestructive: Link | null
   } = $props()
 
-  console.log(navLinks)
-
   // Local state
   let isMobileMenuOpen = $state(false)
   let currentPath = $state('')
+  const path = isAdmin ? '/admin' : '/'
 
   // Update currentPath reactively
   $effect(() => {
@@ -70,7 +69,7 @@
     size={mobile ? 'default' : 'lg'}
     variant={destructive ? 'destructive' : 'default'}
     data-sveltekit-preload-code="eager"
-    href={link.href ? link.href : undefined}
+    href={link.href ? path + link.href : undefined}
     onclick={link.fn ? link.fn : undefined}
     class="text-base font-semibold
         {mobile ? 'w-full' : 'hidden md:inline-flex'}
@@ -100,7 +99,7 @@
     <div
       class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
       <div class="flex items-center gap-6">
-        <a href={isAdmin ? '/admin' : '/'} class="flex items-center space-x-2">
+        <a href={path} class="flex items-center space-x-2">
           <!-- logo omitted for brevity -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -142,7 +141,7 @@
             {#each navLinks as link}
               <NavigationMenu.Item>
                 <NavigationMenu.Link
-                  href={link.href}
+                  href={path + link.href}
                   active={currentPath === link.href}
                   class="text-base font-medium">
                   {link.label}
@@ -190,7 +189,7 @@
       <div class="grid gap-4">
         {#each navLinks as link}
           <a
-            href={link.href}
+            href={path + link.href}
             class="text-lg text-center font-medium {currentPath === link.href
               ? 'text-foreground'
               : 'text-muted-foreground'} hover:text-foreground transition-colors">

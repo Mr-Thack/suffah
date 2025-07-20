@@ -27,7 +27,7 @@
 
   const navLinks = [
     { href: '/maktab-form', label: 'Maktab Form' },
-    { href: '/maktab-term', label: 'Maktab Terms' },
+    { href: '/maktab-terms', label: 'Maktab Terms' },
   ]
   const actionLink = {
     href: '/setup-admin',
