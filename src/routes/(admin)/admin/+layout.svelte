@@ -26,15 +26,21 @@
   let { children } = $props()
 
   const navLinks = [
-    { href: '/maktab-form', label: 'Maktab Form' },
-    { href: '/maktab-terms', label: 'Maktab Terms' },
+    { href: '/db', label: 'Database' },
+    {
+      label: 'Maktab',
+      items: [
+        { href: '/maktab-form', label: 'Maktab Form' },
+        { href: '/maktab-terms', label: 'Maktab Terms' },
+      ],
+    },
   ]
   const actionLink = {
-    href: '/setup-admin',
+    href: '/../setup-admin',
     label: 'User Settings',
   }
   const actionLinkDestructive = {
-    fn: logout,
+    onClick: logout,
     label: 'Logout',
   }
 </script>

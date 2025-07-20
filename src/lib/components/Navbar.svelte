@@ -6,6 +6,7 @@
 
   // Icon imports
   import { Menu, Moon, Sun, X } from 'lucide-svelte'
+  import type { ComponentType } from 'svelte'
 
   // ShadCN-Svelte components
   import * as NavigationMenu from '$lib/components/ui/navigation-menu'
@@ -16,7 +17,6 @@
   import { toggleMode } from 'mode-watcher'
 
   type Without<T, K> = { [P in Exclude<keyof T, keyof K>]?: never }
-
   type XOR<T, U> = (T & Without<U, T>) | (U & Without<T, U>)
 
   type HrefProps = {
@@ -27,11 +27,19 @@
     onClick: () => void
   }
 
-  type SharedProps = {
+  type SimpleLink = {
     label: string
+    icon?: ComponentType
+  } & XOR<HrefProps, OnClickProps>
+
+  type DropdownLink = {
+    label: string
+    items: SimpleLink[]
   }
 
-  export type LinkProps = SharedProps & XOR<HrefProps, OnClickProps>
+  type NavLink = SimpleLink | DropdownLink
+
+  export type LinkProps = SimpleLink // Keep existing export for backward compatibility
 
   let {
     isAdmin,
@@ -40,15 +48,33 @@
     actionLinkDestructive = null,
   }: {
     isAdmin: boolean
-    navLinks: Link[]
-    actionLink: Link[]
-    actionLinkDestructive: Link | null
+    navLinks: NavLink[]
+    actionLink: SimpleLink
+    actionLinkDestructive: SimpleLink | null
   } = $props()
 
   // Local state
   let isMobileMenuOpen = $state(false)
   let currentPath = $state('')
-  const path = isAdmin ? '/admin' : '/'
+  const path = isAdmin ? '/admin' : ''
+
+  // Helper function to check if a link is a dropdown
+  function isDropdown(link: NavLink): link is DropdownLink {
+    return 'items' in link
+  }
+
+  // Helper function to check if a simple link is active
+  function isLinkActive(link: SimpleLink): boolean {
+    if ('href' in link) {
+      return currentPath === path + link.href
+    }
+    return false
+  }
+
+  // Helper function to check if any item in a dropdown is active
+  function isDropdownActive(dropdown: DropdownLink): boolean {
+    return dropdown.items.some((item) => isLinkActive(item))
+  }
 
   // Update currentPath reactively
   $effect(() => {
@@ -69,11 +95,11 @@
     size={mobile ? 'default' : 'lg'}
     variant={destructive ? 'destructive' : 'default'}
     data-sveltekit-preload-code="eager"
-    href={link.href ? path + link.href : undefined}
-    onclick={link.fn ? link.fn : undefined}
+    href={'href' in link ? path + link.href : undefined}
+    onclick={'onClick' in link ? link.onClick : undefined}
     class="text-base font-semibold
-        {mobile ? 'w-full' : 'hidden md:inline-flex'}
-    ">
+{mobile ? 'w-full' : 'hidden md:inline-flex'}
+">
     {link.label}
   </Button>
 {/snippet}
@@ -90,6 +116,52 @@
       destructive: true,
       mobile: mobile,
     })}
+  {/if}
+{/snippet}
+
+{#snippet renderSimpleLink(link: SimpleLink, mobile = false, isSubItem = false)}
+  {#if 'href' in link}
+    <a
+      href={path + link.href}
+      class="text-base font-medium {mobile ? 'text-lg' : ''} {mobile &&
+      !isSubItem
+        ? 'text-left'
+        : mobile && isSubItem
+          ? 'text-left'
+          : ''} {isLinkActive(link)
+        ? mobile
+          ? 'text-accent'
+          : 'text-foreground'
+        : 'text-muted-foreground'} hover:text-foreground transition-colors {mobile
+        ? 'block w-full py-2'
+        : ''}">
+      {#if mobile && isSubItem}
+        <span class="text-muted-foreground mr-2">→</span>
+      {/if}
+      {#if link.icon}
+        <svelte:component this={link.icon} class="inline-block w-4 h-4 mr-2" />
+      {/if}
+      {link.label}
+    </a>
+  {:else}
+    <button
+      onclick={link.onClick}
+      class="text-base font-medium {mobile ? 'text-lg' : ''} {mobile &&
+      !isSubItem
+        ? 'text-left'
+        : mobile && isSubItem
+          ? 'text-left'
+          : ''} text-muted-foreground hover:text-foreground transition-colors {mobile
+        ? 'block w-full py-2 text-left'
+        : ''}">
+      {#if mobile && isSubItem}
+        <span class="text-muted-foreground mr-2">→</span>
+      {/if}
+      {#if link.icon}
+        <svelte:component this={link.icon} class="inline-block w-4 h-4 mr-2" />
+      {/if}
+      {link.label}
+    </button>
   {/if}
 {/snippet}
 
@@ -136,16 +208,60 @@
           </span>
         </a>
 
+        <!-- Desktop Navigation -->
         <NavigationMenu.Root class="hidden md:flex">
           <NavigationMenu.List>
             {#each navLinks as link}
               <NavigationMenu.Item>
-                <NavigationMenu.Link
-                  href={path + link.href}
-                  active={currentPath === link.href}
-                  class="text-base font-medium">
-                  {link.label}
-                </NavigationMenu.Link>
+                {#if isDropdown(link)}
+                  <!-- Dropdown Navigation Item -->
+                  <NavigationMenu.Trigger
+                    class="text-base font-medium {isDropdownActive(link)
+                      ? 'text-foreground'
+                      : ''}">
+                    {link.label}
+                  </NavigationMenu.Trigger>
+                  <NavigationMenu.Content>
+                    <ul class="grid w-[200px] gap-1 p-2">
+                      {#each link.items as item}
+                        <li>
+                          <NavigationMenu.Link
+                            href={'href' in item ? path + item.href : undefined}
+                            onclick={'onClick' in item
+                              ? item.onClick
+                              : undefined}
+                            active={isLinkActive(item)}
+                            class="w-full text-center block px-3 py-2 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors {isLinkActive(
+                              item,
+                            )
+                              ? 'text-accent bg-accent/10'
+                              : 'text-muted-foreground'}">
+                            {#if item.icon}
+                              <svelte:component
+                                this={item.icon}
+                                class="inline-block w-4 h-4 mr-2" />
+                            {/if}
+                            {item.label}
+                          </NavigationMenu.Link>
+                        </li>
+                      {/each}
+                    </ul>
+                  </NavigationMenu.Content>
+                {:else}
+                  <!-- Simple Navigation Item -->
+                  <NavigationMenu.Link
+                    href={'href' in link ? path + link.href : undefined}
+                    onclick={'onClick' in link ? link.onClick : undefined}
+                    active={isLinkActive(link)}
+                    class="text-base font-medium">
+                    {#if link.icon}
+                      <svelte:component
+                        this={link.icon}
+                        class="inline-block w-4 h-4 mr-2" />
+                    {/if}
+                    {link.label}
+                  </NavigationMenu.Link>
+                {/if}
               </NavigationMenu.Item>
             {/each}
           </NavigationMenu.List>
@@ -188,13 +304,20 @@
       class="md:hidden w-full border-t bg-background/95 p-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div class="grid gap-4">
         {#each navLinks as link}
-          <a
-            href={path + link.href}
-            class="text-lg text-center font-medium {currentPath === link.href
-              ? 'text-foreground'
-              : 'text-muted-foreground'} hover:text-foreground transition-colors">
-            {link.label}
-          </a>
+          {#if isDropdown(link)}
+            <!-- Dropdown section in mobile - show parent label and indented children -->
+            <div class="text-lg font-medium text-muted-foreground text-left">
+              {link.label}
+            </div>
+            {#each link.items as item}
+              <div class="pl-6">
+                {@render renderSimpleLink(item, true, true)}
+              </div>
+            {/each}
+          {:else}
+            <!-- Simple link in mobile -->
+            {@render renderSimpleLink(link, true, false)}
+          {/if}
         {/each}
         <hr class="my-2" />
         <!-- Mobile actions -->
