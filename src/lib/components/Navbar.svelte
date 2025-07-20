@@ -15,17 +15,31 @@
   // Theme toggler
   import { toggleMode } from 'mode-watcher'
 
-  // Props (Svelte 5)
-  export interface Link {
+  type Without<T, K> = { [P in Exclude<keyof T, keyof K>]?: never }
+
+  type XOR<T, U> = (T & Without<U, T>) | (U & Without<T, U>)
+
+  type HrefProps = {
     href: string
+  }
+
+  type OnClickProps = {
+    onClick: () => void
+  }
+
+  type SharedProps = {
     label: string
   }
 
+  export type LinkProps = SharedProps & XOR<HrefProps, OnClickProps>
+
   let {
+    isAdmin,
     navLinks,
     actionLink,
     actionLinkDestructive = null,
   }: {
+    isAdmin: boolean
     navLinks: Link[]
     actionLink: Link[]
     actionLinkDestructive: Link | null
@@ -54,14 +68,30 @@
 {#snippet actionButton({ link, destructive, mobile })}
   <Button
     size={mobile ? 'default' : 'lg'}
+    variant={destructive ? 'destructive' : 'default'}
     data-sveltekit-preload-code="eager"
-    href={link.href}
+    href={link.href ? link.href : undefined}
+    onclick={link.fn ? link.fn : undefined}
     class="text-base font-semibold
-        {destructive ? 'destructive' : ''}
         {mobile ? 'w-full' : 'hidden md:inline-flex'}
     ">
     {link.label}
   </Button>
+{/snippet}
+
+{#snippet actionButtons(mobile)}
+  {@render actionButton({
+    link: actionLink,
+    destructive: false,
+    mobile: mobile,
+  })}
+  {#if actionLinkDestructive}
+    {@render actionButton({
+      link: actionLinkDestructive,
+      destructive: true,
+      mobile: mobile,
+    })}
+  {/if}
 {/snippet}
 
 <Collapsible.Root bind:open={isMobileMenuOpen} class="w-full">
@@ -70,7 +100,7 @@
     <div
       class="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
       <div class="flex items-center gap-6">
-        <a href="/" class="flex items-center space-x-2">
+        <a href={isAdmin ? '/admin' : '/'} class="flex items-center space-x-2">
           <!-- logo omitted for brevity -->
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -98,7 +128,13 @@
               stroke-linejoin="round"
               stroke-width="16" />
           </svg>
-          <span class="font-bold">Masjid Suffah</span>
+          <span class="font-bold" class:text-accent={isAdmin}>
+            {#if isAdmin}
+              Suffah Admin
+            {:else}
+              Masjid Suffah
+            {/if}
+          </span>
         </a>
 
         <NavigationMenu.Root class="hidden md:flex">
@@ -119,7 +155,7 @@
 
       <div class="flex items-center space-x-4 md:space-x-6">
         <!-- Theme toggle -->
-        <Button on:click={toggleMode} variant="ghost" size="icon">
+        <Button onclick={toggleMode} variant="ghost" size="icon">
           <Sun
             class="absolute size-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <Moon
@@ -128,18 +164,7 @@
         </Button>
 
         <!-- Primary actions via snippet -->
-        {@render actionButton({
-          link: actionLink,
-          destructive: false,
-          mobile: false,
-        })}
-        {#if actionLinkDestructive}
-          {@render actionButton({
-            link: actionLinkDestructive,
-            destructive: true,
-            mobile: false,
-          })}
-        {/if}
+        {@render actionButtons(false)}
 
         <!-- Mobile menu trigger -->
         <div class="md:hidden">
@@ -174,18 +199,7 @@
         {/each}
         <hr class="my-2" />
         <!-- Mobile actions -->
-        {@render actionButton({
-          link: actionLink,
-          destructive: false,
-          mobile: true,
-        })}
-        {#if actionLinkDestructive}
-          {@render actionButton({
-            link: actionLinkDestructive,
-            destructive: true,
-            mobile: true,
-          })}
-        {/if}
+        {@render actionButtons(true)}
       </div>
     </Collapsible.Content>
   </header>

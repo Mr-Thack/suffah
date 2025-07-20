@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation'
   import { db } from '$lib/db.ts'
   import { Button } from '$lib/components/ui/button'
+  import Navbar from '$lib/components/Navbar.svelte'
 
   let checking = $state(true)
 
@@ -23,14 +24,22 @@
     goto('/login')
   }
   let { children } = $props()
+
+  const navLinks = [
+    { href: '/maktab-form', label: 'Maktab Form' },
+    { href: '/maktab-term', label: 'Maktab Terms' },
+  ]
+  const actionLink = {
+    href: '/setup-admin',
+    label: 'User Settings',
+  }
+  const actionLinkDestructive = {
+    fn: logout,
+    label: 'Logout',
+  }
 </script>
 
-<div>
-  <Button href="/setup-admin">Settings</Button>
-  <Button href="/admin/maktab-form">Maktab Form</Button>
-  <Button href="/admin/maktab-terms">Maktab Terms</Button>
-  <Button variant="destructive" onclick={logout}>Logout</Button>
-</div>
+<Navbar isAdmin={true} {navLinks} {actionLink} {actionLinkDestructive} />
 
 {#if checking}
   <div class="min-h-screen flex items-center justify-center">

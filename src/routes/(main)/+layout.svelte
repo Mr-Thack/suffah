@@ -3,13 +3,13 @@
 
   let { children } = $props()
 
-  const navLinks: Link[] = [
+  const navLinks = [
     { href: '/', label: 'Home' },
     { href: '/maktab', label: 'Maktab' },
     { href: '/location', label: 'Location' },
     { href: '/donate', label: 'Donate' },
   ]
-  const actionLink: Link = {
+  const actionLink = {
     href: '/display',
     label: 'View Prayer Times',
   }
