@@ -66,7 +66,13 @@
   // Helper function to check if a simple link is active
   function isLinkActive(link: SimpleLink): boolean {
     if ('href' in link) {
-      return currentPath === path + link.href
+      const fullPath = path + link.href
+      const isActive = currentPath === fullPath
+      // Debug logging - remove this later
+      console.log(
+        `Checking link: ${link.label}, currentPath: ${currentPath}, fullPath: ${fullPath}, isActive: ${isActive}`,
+      )
+      return isActive
     }
     return false
   }
@@ -217,8 +223,8 @@
                   <!-- Dropdown Navigation Item -->
                   <NavigationMenu.Trigger
                     class="text-base font-medium {isDropdownActive(link)
-                      ? 'text-foreground'
-                      : ''}">
+                      ? 'text-accent'
+                      : 'text-muted-foreground'} hover:text-foreground transition-colors">
                     {link.label}
                   </NavigationMenu.Trigger>
                   <NavigationMenu.Content>
@@ -253,7 +259,9 @@
                     href={'href' in link ? path + link.href : undefined}
                     onclick={'onClick' in link ? link.onClick : undefined}
                     active={isLinkActive(link)}
-                    class="text-base font-medium">
+                    class="text-base font-medium {isLinkActive(link)
+                      ? 'text-accent'
+                      : 'text-muted-foreground'} hover:text-foreground transition-colors">
                     {#if link.icon}
                       <svelte:component
                         this={link.icon}
@@ -306,7 +314,10 @@
         {#each navLinks as link}
           {#if isDropdown(link)}
             <!-- Dropdown section in mobile - show parent label and indented children -->
-            <div class="text-lg font-medium text-muted-foreground text-left">
+            <div
+              class="text-lg font-medium text-left {isDropdownActive(link)
+                ? 'text-accent'
+                : 'text-muted-foreground'}">
               {link.label}
             </div>
             {#each link.items as item}
