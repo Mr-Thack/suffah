@@ -138,8 +138,8 @@
 
 {#snippet themeToggle()}
   <Button onclick={toggleMode} variant="ghost" size="icon">
-    <Sun class="size-5 dark:hidden" />
-    <Moon class="hidden size-5 dark:block" />
+    <Sun class="hidden size-5 dark:block" />
+    <Moon class="block size-5 dark:hidden" />
     <span class="sr-only">Toggle theme</span>
   </Button>
 {/snippet}
