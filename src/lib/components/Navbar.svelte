@@ -83,7 +83,7 @@
       ? 'text-accent'
       : 'text-muted-foreground'} hover:text-foreground transition-colors">
     {#if link.icon}
-      <svelte:component this={link.icon} class="inline-block w-4 h-4 mr-2" />
+      <link.icon class="inline-block w-4 h-4 mr-2" />
     {/if}
     {link.label}
   </NavigationMenu.Link>
@@ -168,7 +168,7 @@
     <a href={pathPrefix + link.href} class={base}>
       {#if sub}<span class="text-muted-foreground mr-2">→</span>{/if}
       {#if link.icon}
-        <svelte:component this={link.icon} class="inline-block w-4 h-4 mr-2" />
+        <link.icon class="inline-block w-4 h-4 mr-2" />
       {/if}
       {link.label}
     </a>
@@ -176,7 +176,7 @@
     <button onclick={link.onClick} class="{base} text-left">
       {#if sub}<span class="text-muted-foreground mr-2">→</span>{/if}
       {#if link.icon}
-        <svelte:component this={link.icon} class="inline-block w-4 h-4 mr-2" />
+        <link.icon class="inline-block w-4 h-4 mr-2" />
       {/if}
       {link.label}
     </button>
