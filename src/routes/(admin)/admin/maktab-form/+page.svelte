@@ -8,6 +8,7 @@
   import * as HoverCard from '$lib/components/ui/hover-card'
   import { Input } from '$lib/components/ui/input'
   import ColumnSortButton from '$lib/components/ColumnSortButton.svelte'
+  import { generateBookkeepingForm } from '$lib/emailTemplates'
 
   import {
     createSvelteTable,
@@ -34,15 +35,31 @@
     }
   }
 
-  let terms: { id: number; name: string }[] = $state([])
+  interface Term {
+    id: number
+    name: string
+    length: number
+    p1: number
+    p2: number
+    p3: number
+    sid1: string
+    sid2: string
+    sid3: string
+  }
+
+  let terms: Term[] = $state([])
   let activeTermId: number | null = $state(null)
+  let activeTerm: Term | null = $derived.by(() => {
+    return terms.find((t) => t.id === activeTermId)
+  })
   let rows: Row[] = $state([])
+  let rawRegs = []
 
   // Load all terms and active term
   async function loadTerms() {
     const { data: termData } = await db
       .from('maktab_term')
-      .select('id, name')
+      .select('id, name, length, p1, p2, p3, sid1, sid2, sid3')
       .order('id', { ascending: true })
     terms = termData ?? []
     const key = (dev ? 'dev_' : '') + 'active_term_id'
@@ -61,14 +78,19 @@
     const { data, error } = await db
       .from('maktab_registrations')
       .select(
-        'id, father_name, father_phone, mother_name, mother_phone, children',
+        'id, father_name, father_phone, father_email, mother_name, mother_phone, mother_email, children, address, city, zip_code, date_submitted, customer_id, subscription_id',
       )
       .eq('term_id', termId)
+
     if (error || !data) {
       console.error(error)
       rows = []
+      rawRegs = []
       return
     }
+
+    rawRegs = data
+
     const today = new Date()
     rows = data.flatMap((reg) =>
       (reg.children as any[]).map((child, idx) => {
@@ -91,11 +113,61 @@
     )
   }
 
+  function exportFirstRow() {
+    if (rawRegs.length === 0) return
+
+    // pick the first registration (could be multiple children)
+    const firstReg = rawRegs[0]
+    // call your existing exporter
+
+    console.log(activeTermId, activeTerm)
+    console.log(terms)
+    const html = generateBookkeepingForm(
+      {
+        id: firstReg.id,
+        father: {
+          name: firstReg.father_name,
+          phone: firstReg.father_phone,
+          email: firstReg.father_email,
+        },
+        mother: {
+          name: firstReg.mother_name,
+          phone: firstReg.mother_phone,
+          email: firstReg.mother_email,
+        },
+        address: firstReg.address,
+        city: firstReg.city,
+        zipCode: firstReg.zip_code,
+        children: firstReg.children.map((c: any) => ({
+          name: c.name,
+          dob: c.dob,
+          sex: c.sex,
+        })),
+        dateSubmitted: firstReg.date_submitted,
+        customerId: firstReg.customer_id,
+        subscriptionId: firstReg.subscription_id,
+      },
+      activeTerm,
+    )
+
+    // trigger download
+    const blob = new Blob([html], { type: 'text/html' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'registration_export.html'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
   onMount(loadTerms)
 
   // Re-fetch registrations when term changes
   $effect(async () => {
-    if (activeTermId) fetchAndFlatten(activeTermId)
+    if (activeTermId) {
+      await fetchAndFlatten(activeTermId)
+      exportFirstRow()
+    }
   })
 
   // Table setup without pagination
@@ -183,8 +255,8 @@
   <div class="flex items-center gap-2">
     <Select.Root type="single" bind:value={activeTermId}>
       <Select.Trigger class="min-w-[200px]">
-        {#if activeTermId}
-          {terms.find((t) => t.id === activeTermId)?.name}
+        {#if activeTerm}
+          {activeTerm.name}
         {:else}
           Select a term...
         {/if}

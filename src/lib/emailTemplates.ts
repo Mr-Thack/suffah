@@ -1,5 +1,6 @@
 import { marked } from 'marked'
-import { FORWARD_TO_EMAIL } from '$env/static/private'
+import { PUBLIC_FORWARD_TO_EMAIL } from '$env/static/public'
+import { formatPhone } from '$lib/phone'
 
 // Types
 export interface RegistrationData {
@@ -12,12 +13,25 @@ export interface RegistrationData {
   }>
 }
 
+export interface RowData extends RegistrationData {
+  id: number
+  dateSubmitted: string
+  customerId: string
+  subscriptionId: string
+  address: string
+  city: string
+  zipCode: string
+}
+
 export interface TermInfo {
   name: string
   length: number
   p1: number
   p2: number
   p3: number
+  sid1: string
+  sid2: string
+  sid3: string
 }
 
 // Enhanced recipient interface to include names for personalization
@@ -56,20 +70,6 @@ function cleanMarkdown(markdown: string): string {
 }
 
 function markdownToHtml(markdown: string): string {
-  const timestamp = new Date().toLocaleString()
-
-  markdown += `
-
-
----
-
-This email was automatically generated. No further action is required unless noted above.
-
-Either reply to this email or contact ${FORWARD_TO_EMAIL} directly for any assitance.
-
-
-**Sent at:** ${timestamp}`
-
   const cleanMd = cleanMarkdown(markdown)
   return `<!DOCTYPE html>
   <html lang="en">
@@ -78,17 +78,171 @@ Either reply to this email or contact ${FORWARD_TO_EMAIL} directly for any assit
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Masjid Suffah</title>
   <style>
-  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-  h1 { color: #2c3e50; }
-  h2 { color: #34495e; }
-  strong { color: #2c3e50; }
-  hr { border: 1px solid #bdc3c7; margin: 20px 0; }
+  body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    padding: 20px;
+  }
+
+  h1 {
+    color: #2c3e50;
+    margin-bottom: 0.5em;
+  }
+
+  h2 {
+    color: #34495e;
+    margin-top: 1.5em;
+  }
+
+  strong {
+    color: #2c3e50;
+  }
+
+  hr {
+    border: 1px solid #bdc3c7;
+    margin: 20px 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1em 0;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #f2f2f2;
+  }
+
+  tr:nth-child(even) {
+    background-color: #fafafa;
+  }
   </style>
   </head>
   <body>
   ${marked(cleanMd)}
   </body>
   </html>`
+}
+
+function markdownToEmail(markdown: string): string {
+  const timestamp = new Date().toLocaleString()
+
+  markdown += `
+
+
+  ---
+
+    This email was automatically generated. No further action is required unless noted above.
+
+    Either reply to this email or contact ${PUBLIC_FORWARD_TO_EMAIL} directly for any assitance.
+
+
+    **Sent at:** ${timestamp}`
+
+  return markdownToHtml(markdown)
+}
+
+export function generateBookkeepingForm(
+  registrationData: RowData,
+  term: TermInfo,
+): string {
+  console.log(term)
+
+  const {
+    id,
+    dateSubmitted,
+    customerId,
+    subscriptionId,
+    father,
+    mother,
+    address,
+    city,
+    zipCode,
+    children,
+  } = registrationData
+
+  const submissionInfo = `
+    ## Submission Info
+
+    | Field           | Value |
+    |------------------|-------|
+    | Application ID   | ${id} |
+    | Date Submitted   | ${new Date(dateSubmitted).toLocaleString('en-US', { timeZone: 'UTC' })} |
+    | Customer ID      | ${customerId} |
+    | Subscription ID  | ${subscriptionId} |
+    | Term ID          | ${term.id} |`
+
+  const termInfo = `
+    ## Term Details
+
+    | Field                | Value |
+    |----------------------|-------|
+    | Term Name            | ${term.name} |
+    | Length               | ${term.length} Months |
+    | Price (1 student)    | ${term.p1} |
+    | Price (2 students)   | ${term.p2} |
+    | Price (3+ students)  | ${term.p3} |
+    | Subscription ID (1)  | ${term.sid1} |
+    | Subscription ID (2)  | ${term.sid2} |
+    | Subscription ID (3+) | ${term.sid3} |`
+
+  const parentTable = `
+    ## Parent/Guardian Details
+
+    |         | Name              | Email              | Phone             |
+    |---------|-------------------|--------------------|-------------------|
+    | Father  | ${father?.name || 'N/A'} | ${father?.email || 'N/A'} | ${formatPhone(father?.phone) || 'N/A'} |
+    | Mother  | ${mother?.name || 'N/A'} | ${mother?.email || 'N/A'} | ${formatPhone(mother?.phone) || 'N/A'} |`
+
+  const addressSection = `
+    **Address:** ${address}  
+    **City:** ${city}  
+    **Zip Code:** ${zipCode}`
+
+  const childTableHeader = `
+        ## Enrolled Children
+
+          | Child # | Name            | Sex   | Date of Birth   |
+            |---------|------------------|-------|-----------------|`
+
+  const childTableRows = children
+    .map(
+      (child, index) =>
+        `| ${index + 1} | ${child.name} | ${child.sex} | ${formatDate(child.dob)} |`,
+    )
+    .join('\n')
+
+  const markdown = `
+          # Masjid Suffah Maktab - Registration Record #${id}
+
+          ${parentTable}
+
+          ${addressSection}
+
+
+          ---
+
+            ${childTableHeader}
+          ${childTableRows}
+
+
+          ---
+
+            ${termInfo}
+
+          <div style="page-break-after: always;"></div>
+
+          ${submissionInfo}
+          `
+
+  return markdownToHtml(markdown)
 }
 
 /**
@@ -177,7 +331,7 @@ This email is a confirmation of your enrollment and agreement to these terms.
 **Masjid Suffah Team**`
 
   const textContent = cleanMarkdown(markdown)
-  const htmlContent = markdownToHtml(markdown)
+  const htmlContent = markdownToEmail(markdown)
 
   return {
     htmlContent,
@@ -205,7 +359,7 @@ This is a test email to verify the email system is working correctly.
 **AbdulMuqeet Mohammed**`
 
   const textContent = cleanMarkdown(markdown)
-  const htmlContent = markdownToHtml(markdown)
+  const htmlContent = markdownToEmail(markdown)
 
   return {
     htmlContent,

@@ -1,7 +1,12 @@
 <script lang="ts">
   import { Input } from '$lib/components/ui/input'
-  import { phoneFormats } from '$lib/data/phoneFormats'
   import { Phone } from 'lucide-svelte'
+  import {
+    getExpectedDigitCount,
+    detectCountryCode,
+    formatPhoneNumber,
+  } from '$lib/phone'
+  import { phoneFormats } from '$lib/data/phoneFormats'
 
   // Props with bindable defaults
   let {
@@ -21,154 +26,6 @@
   let lastValidPhone = $state('')
   let inputElement: HTMLInputElement
   let userHasStartedTyping = $state(false)
-
-  // Function to get expected digit count for a country code
-  function getExpectedDigitCount(countryCode: string): number {
-    const format = phoneFormats[countryCode] || '###-###-####'
-    return (format.match(/#/g) || []).length
-  }
-
-  // Function to detect country code from phone number
-  function detectCountryCode(
-    phoneNumber: string,
-    currentCountryCode: string = '1',
-    respectDefault: boolean = true,
-  ): string {
-    const cleanNumber = phoneNumber.replace(/\D/g, '')
-
-    if (!cleanNumber) return currentCountryCode
-
-    // If we should respect the default country code and user just started typing,
-    // only detect country code if the input clearly starts with a different one
-    if (respectDefault && !userHasStartedTyping) {
-      // Check if the input starts with a plus or is clearly an international format
-      const startsWithPlus = phoneNumber.trim().startsWith('+')
-      if (!startsWithPlus) {
-        // If no plus and we have a default country code, assume national format
-        return currentCountryCode
-      }
-    }
-
-    // Check for country codes by length (longer codes first to avoid false matches)
-    const sortedCodes = Object.keys(phoneFormats).sort(
-      (a, b) => b.length - a.length,
-    )
-
-    // For ambiguous cases, check if it could be a US number first
-    if (!phoneNumber.trim().startsWith('+') && currentCountryCode === '1') {
-      // Check if the number could be a valid US number (10 digits)
-      if (cleanNumber.length === 10 || cleanNumber.length === 11) {
-        // If it's 11 digits and starts with 1, it's likely US with country code
-        if (cleanNumber.length === 11 && cleanNumber.startsWith('1')) {
-          return '1'
-        }
-        // If it's 10 digits, assume US
-        if (cleanNumber.length === 10) {
-          return '1'
-        }
-      }
-    }
-
-    for (const code of sortedCodes) {
-      if (cleanNumber.startsWith(code)) {
-        return code
-      }
-    }
-
-    // If we have partial input and it's clearly international format (starts with +)
-    if (phoneNumber.trim().startsWith('+')) {
-      for (const code of sortedCodes) {
-        if (code.startsWith(cleanNumber)) {
-          return cleanNumber // Return the partial code we're typing
-        }
-      }
-    }
-
-    // If no match found, return current country code to avoid jumping around
-    return currentCountryCode
-  }
-
-  // Function to format phone number based on detected country code
-  function formatPhoneNumber(
-    value: string,
-    currentCountryCode: string = '1',
-    respectDefault: boolean = true,
-  ): {
-    formatted: string
-    countryCode: string
-    cleanNumber: string
-  } {
-    // Remove all non-numeric characters except + at the start
-    const hasPlus = value.trim().startsWith('+')
-    const cleanNumber = value.replace(/\D/g, '')
-
-    if (!cleanNumber) {
-      return { formatted: '', countryCode: currentCountryCode, cleanNumber: '' }
-    }
-
-    // Detect country code
-    const detectedCode = detectCountryCode(
-      value,
-      currentCountryCode,
-      respectDefault,
-    )
-
-    // Get the national number (without country code)
-    let nationalNumber = cleanNumber
-
-    // Only remove country code digits if we actually detected a different country code
-    // or if the input clearly starts with a country code
-    if (
-      hasPlus ||
-      detectedCode !== currentCountryCode ||
-      cleanNumber.startsWith(detectedCode)
-    ) {
-      nationalNumber = cleanNumber.slice(detectedCode.length)
-    } else {
-      // If we're using the default country code and input doesn't start with +,
-      // treat all digits as national number
-      nationalNumber = cleanNumber
-    }
-
-    // Get the format pattern for this country
-    const format = phoneFormats[detectedCode] || '###-###-####'
-    const expectedDigitCount = getExpectedDigitCount(detectedCode)
-
-    // Truncate national number to expected length to prevent extra digits
-    if (nationalNumber.length > expectedDigitCount) {
-      nationalNumber = nationalNumber.slice(0, expectedDigitCount)
-    }
-
-    // Recalculate clean number with country code + national number
-    const truncatedCleanNumber = detectedCode + nationalNumber
-
-    // Apply formatting - always start with country code
-    let formatted = `+${detectedCode}`
-
-    if (nationalNumber.length > 0) {
-      formatted += ' '
-      let numberIndex = 0
-
-      for (const char of format) {
-        if (char === '#' && numberIndex < nationalNumber.length) {
-          formatted += nationalNumber[numberIndex]
-          numberIndex++
-        } else if (char !== '#') {
-          // Add formatting characters as long as we have digits to format
-          // or if we're at the beginning of the national number
-          if (numberIndex > 0 || nationalNumber.length > 0) {
-            formatted += char
-          }
-        }
-      }
-    }
-
-    return {
-      formatted,
-      countryCode: detectedCode,
-      cleanNumber: truncatedCleanNumber,
-    }
-  }
 
   // Calculate cursor position after formatting
   function calculateCursorPosition(

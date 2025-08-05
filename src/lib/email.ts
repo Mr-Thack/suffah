@@ -1,11 +1,11 @@
+import { BREVO_API_KEY } from '$env/static/private'
 import {
-  BREVO_API_KEY,
-  SENDER_EMAIL,
-  SENDER_NAME,
-  FORWARD_TO_EMAIL,
-  BOT_NAME,
-  LOGGING_EMAIL,
-} from '$env/static/private'
+  PUBLIC_SENDER_EMAIL,
+  PUBLIC_SENDER_NAME,
+  PUBLIC_FORWARD_TO_EMAIL,
+  PUBLIC_BOT_NAME,
+  PUBLIC_LOGGING_EMAIL,
+} from '$env/static/public'
 import {
   generateRegistrationEmail,
   generateTestEmail,
@@ -21,18 +21,23 @@ export interface EmailResponse {
   [key: string]: any
 }
 
-// Validation
-if (
-  !(
-    BREVO_API_KEY &&
-    SENDER_EMAIL &&
-    SENDER_NAME &&
-    FORWARD_TO_EMAIL &&
-    BOT_NAME &&
-    LOGGING_EMAIL
+const requiredVars = {
+  BREVO_API_KEY,
+  PUBLIC_SENDER_EMAIL,
+  PUBLIC_SENDER_NAME,
+  PUBLIC_FORWARD_TO_EMAIL,
+  PUBLIC_BOT_NAME,
+  PUBLIC_LOGGING_EMAIL,
+}
+
+const missingVars = Object.entries(requiredVars)
+  .filter(([_, value]) => !value)
+  .map(([key]) => key)
+
+if (missingVars.length > 0) {
+  throw new Error(
+    `Missing required environment variable(s): ${missingVars.join(', ')}`,
   )
-) {
-  throw new Error('Missing Brevo environment variables')
 }
 
 /**
@@ -55,8 +60,8 @@ async function sendEmail(emailContent: EmailContent): Promise<EmailResponse> {
 
   // Sender configuration with proper name and email
   const senderInfo = {
-    email: SENDER_EMAIL,
-    name: SENDER_NAME,
+    email: PUBLIC_SENDER_EMAIL,
+    name: PUBLIC_SENDER_NAME,
   }
 
   const payload = {
@@ -72,7 +77,7 @@ async function sendEmail(emailContent: EmailContent): Promise<EmailResponse> {
 
     // For logging, if set
     bcc: emailContent.log
-      ? [{ email: LOGGING_EMAIL, name: 'MasjidSuffah Logging' }]
+      ? [{ email: PUBLIC_LOGGING_EMAIL, name: 'MasjidSuffah Logging' }]
       : undefined,
 
     // Subject line
@@ -85,16 +90,16 @@ async function sendEmail(emailContent: EmailContent): Promise<EmailResponse> {
     // Anti-spam and delivery optimization headers
     headers: {
       // Custom headers to improve deliverability
-      'X-Mailer': `${BOT_NAME} (NodeMailer+Brevo; by AbdulMuqeet Mohammed)`,
+      'X-Mailer': `${PUBLIC_BOT_NAME} (NodeMailer+Brevo; by AbdulMuqeet Mohammed)`,
       'X-Priority': '3', // Normal priority (1=high, 3=normal, 5=low)
       'X-MSMail-Priority': 'Normal',
       Importance: 'Normal',
 
       // List-Unsubscribe header (reduces spam complaints)
-      'List-Unsubscribe': `<mailto:${FORWARD_TO_EMAIL}?subject=Unsubscribe>`,
+      'List-Unsubscribe': `<mailto:${PUBLIC_FORWARD_TO_EMAIL}?subject=Unsubscribe>`,
 
       // Authentication headers to improve reputation
-      'X-Mailer-Info': `Masjid Suffah's Automated Mail System; Contact ${FORWARD_TO_EMAIL} if needed;`,
+      'X-Mailer-Info': `Masjid Suffah's Automated Mail System; Contact ${PUBLIC_FORWARD_TO_EMAIL} if needed;`,
     },
 
     // Tags for tracking and organization (helps with Brevo analytics)
@@ -123,7 +128,7 @@ async function sendEmail(emailContent: EmailContent): Promise<EmailResponse> {
 
         // Additional headers for better API performance
         Accept: 'application/json',
-        'User-Agent': BOT_NAME,
+        'User-Agent': PUBLIC_BOT_NAME,
 
         // Cache control to ensure fresh requests
         'Cache-Control': 'no-cache',
