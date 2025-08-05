@@ -165,7 +165,6 @@
     getFilteredRowModel: getFilteredRowModel(),
     debugTable: true,
     onSortingChange: (updater) => {
-      console.log(updater)
       if (typeof updater === 'function') {
         sorting = updater(sorting)
       } else {
@@ -248,4 +247,6 @@
       </Body>
     </Root>
   </div>
+  Total Entries:
+  <strong>{table.getRowModel().rows.length}</strong>
 </div>
