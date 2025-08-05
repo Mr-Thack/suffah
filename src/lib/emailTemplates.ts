@@ -149,12 +149,28 @@ function markdownToEmail(markdown: string): string {
   return markdownToHtml(markdown)
 }
 
-export function generateBookkeepingForm(
+export function termInfoMarkdown(term: TermInfo): string {
+  console.log(term)
+  return `
+    # Term Information
+
+    | Field                | Value                |
+    |----------------------|----------------------|
+    | Term Name            | ${term.name}         |
+    | Duration             | ${term.length} Months|
+    | Price (1 student)    | ${term.p1}          |
+    | Price (2 students)   | ${term.p2}          |
+    | Price (3+ students)  | ${term.p3}          |
+    | Subscription ID (1)  | ${term.sid1}         |
+    | Subscription ID (2)  | ${term.sid2}         |
+    | Subscription ID (3+) | ${term.sid3}         |`
+}
+
+export function generateBookkeepingFormMarkdown(
   registrationData: RowData,
   term: TermInfo,
+  bulkExport: boolean = false,
 ): string {
-  console.log(term)
-
   const {
     id,
     dateSubmitted,
@@ -179,19 +195,7 @@ export function generateBookkeepingForm(
     | Subscription ID  | ${subscriptionId} |
     | Term ID          | ${term.id} |`
 
-  const termInfo = `
-    ## Term Details
-
-    | Field                | Value |
-    |----------------------|-------|
-    | Term Name            | ${term.name} |
-    | Length               | ${term.length} Months |
-    | Price (1 student)    | ${term.p1} |
-    | Price (2 students)   | ${term.p2} |
-    | Price (3+ students)  | ${term.p3} |
-    | Subscription ID (1)  | ${term.sid1} |
-    | Subscription ID (2)  | ${term.sid2} |
-    | Subscription ID (3+) | ${term.sid3} |`
+  const termInfo = bulkExport ? '' : termInfoMarkdown(term)
 
   const parentTable = `
     ## Parent/Guardian Details
@@ -229,20 +233,54 @@ export function generateBookkeepingForm(
 
           ---
 
-            ${childTableHeader}
+          ${childTableHeader}
           ${childTableRows}
 
 
           ---
 
-            ${termInfo}
+          ${termInfo}
 
-          <div style="page-break-after: always;"></div>
 
           ${submissionInfo}
           `
 
-  return markdownToHtml(markdown)
+  return markdown
+}
+
+export function generateBookkeepingForm(
+  registrationData: RowData,
+  term: TermInfo,
+  bulkExport: boolean = false,
+): string {
+  return markdownToHtml(
+    generateBookkeepingFormMarkdown(registrationData, term, bulkExport),
+  )
+}
+
+export function generateBookkeepingForms({
+  rows,
+  term,
+}: {
+  rows: RowData[]
+  term: TermInfo
+}): string {
+  console.log(rows, term)
+
+  // 1. Start with the term-info page
+  const pages: string[] = [termInfoMarkdown(term)]
+
+  // 2. Append each registration as its own page
+  for (const row of rows) {
+    pages.push(`\n<div style="page-break-after: always;"></div>\n`)
+    pages.push(generateBookkeepingFormMarkdown(row, term, true))
+  }
+
+  // 3. Join all into one big markdown document
+  const fullMarkdown = pages.join('\n')
+
+  // 4. Convert that single big markdown → HTML
+  return markdownToHtml(fullMarkdown)
 }
 
 /**

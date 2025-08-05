@@ -8,7 +8,10 @@
   import * as HoverCard from '$lib/components/ui/hover-card'
   import { Input } from '$lib/components/ui/input'
   import ColumnSortButton from '$lib/components/ColumnSortButton.svelte'
-  import { generateBookkeepingForm } from '$lib/emailTemplates'
+  import {
+    generateBookkeepingForm,
+    generateBookkeepingForms,
+  } from '$lib/emailTemplates'
 
   import {
     createSvelteTable,
@@ -113,51 +116,62 @@
     )
   }
 
-  function exportFirstRow() {
-    if (rawRegs.length === 0) return
-
-    // pick the first registration (could be multiple children)
-    const firstReg = rawRegs[0]
-    // call your existing exporter
-
-    console.log(activeTermId, activeTerm)
-    console.log(terms)
-    const html = generateBookkeepingForm(
-      {
-        id: firstReg.id,
-        father: {
-          name: firstReg.father_name,
-          phone: firstReg.father_phone,
-          email: firstReg.father_email,
-        },
-        mother: {
-          name: firstReg.mother_name,
-          phone: firstReg.mother_phone,
-          email: firstReg.mother_email,
-        },
-        address: firstReg.address,
-        city: firstReg.city,
-        zipCode: firstReg.zip_code,
-        children: firstReg.children.map((c: any) => ({
-          name: c.name,
-          dob: c.dob,
-          sex: c.sex,
-        })),
-        dateSubmitted: firstReg.date_submitted,
-        customerId: firstReg.customer_id,
-        subscriptionId: firstReg.subscription_id,
+  function transformRegistration(reg: any) {
+    return {
+      id: reg.id,
+      father: {
+        name: reg.father_name,
+        phone: reg.father_phone,
+        email: reg.father_email,
       },
-      activeTerm,
-    )
+      mother: {
+        name: reg.mother_name,
+        phone: reg.mother_phone,
+        email: reg.mother_email,
+      },
+      address: reg.address,
+      city: reg.city,
+      zipCode: reg.zip_code,
+      children: reg.children.map((c: any) => ({
+        name: c.name,
+        dob: c.dob,
+        sex: c.sex,
+      })),
+      dateSubmitted: reg.date_submitted,
+      customerId: reg.customer_id,
+      subscriptionId: reg.subscription_id,
+    }
+  }
 
-    // trigger download
+  function downloadHtml(html: string, filename: string) {
     const blob = new Blob([html], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = 'registration_export.html'
+    a.download = filename
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  function exportFirstRow() {
+    if (rawRegs.length === 0) return
+
+    const firstReg = rawRegs[0]
+    const transformed = transformRegistration(firstReg)
+    const html = generateBookkeepingForm(transformed, activeTerm)
+
+    downloadHtml(html, 'registration_export.html')
+  }
+
+  function exportBulkRows() {
+    if (rawRegs.length === 0) return
+
+    const transformedRegs = rawRegs.map(transformRegistration)
+    console.log(transformedRegs)
+    console.log(activeTerm)
+    const html = generateBookkeepingForms(transformedRegs, activeTerm)
+
+    downloadHtml(html, 'registration_export_bulk.html')
   }
 
   onMount(loadTerms)
@@ -166,7 +180,6 @@
   $effect(async () => {
     if (activeTermId) {
       await fetchAndFlatten(activeTermId)
-      exportFirstRow()
     }
   })
 
@@ -268,6 +281,8 @@
       </Select.Content>
     </Select.Root>
   </div>
+
+  <Button onclick={exportBulkRows}>Export All</Button>
 
   <!-- Filter by name -->
   <!--
