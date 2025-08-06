@@ -149,18 +149,20 @@ function markdownToEmail(markdown: string): string {
   return markdownToHtml(markdown)
 }
 
-export function termInfoMarkdown(term: TermInfo): string {
-  console.log(term)
+export function termInfoMarkdown(term: TermInfo, isBulk = false): string {
   return `
-    # Term Information
+    ${isBulk ? '# Masjid Suffah Maktab Registration' : ''}
+
+    ## Term Information
 
     | Field                | Value                |
     |----------------------|----------------------|
     | Term Name            | ${term.name}         |
+    | Term ID              | ${term.id}           |
     | Duration             | ${term.length} Months|
-    | Price (1 student)    | ${term.p1}          |
-    | Price (2 students)   | ${term.p2}          |
-    | Price (3+ students)  | ${term.p3}          |
+    | Price (1 student)    | $${term.p1}          |
+    | Price (2 students)   | $${term.p2}          |
+    | Price (3+ students)  | $${term.p3}          |
     | Subscription ID (1)  | ${term.sid1}         |
     | Subscription ID (2)  | ${term.sid2}         |
     | Subscription ID (3+) | ${term.sid3}         |`
@@ -192,8 +194,7 @@ export function generateBookkeepingFormMarkdown(
     | Application ID   | ${id} |
     | Date Submitted   | ${new Date(dateSubmitted).toLocaleString('en-US', { timeZone: 'UTC' })} |
     | Customer ID      | ${customerId} |
-    | Subscription ID  | ${subscriptionId} |
-    | Term ID          | ${term.id} |`
+    | Subscription ID  | ${subscriptionId} |`
 
   const termInfo = bulkExport ? '' : termInfoMarkdown(term)
 
@@ -217,30 +218,22 @@ export function generateBookkeepingFormMarkdown(
             |---------|------------------|-------|-----------------|`
 
   const childTableRows = children
-    .map(
-      (child, index) =>
-        `| ${index + 1} | ${child.name} | ${child.sex} | ${formatDate(child.dob)} |`,
-    )
+    .map((child, index) => {
+      return `| ${index + 1} | ${child.name} | ${child.sex} | ${child.dob} |`
+    })
     .join('\n')
 
   const markdown = `
-          # Masjid Suffah Maktab - Registration Record #${id}
+          # Maktab Registration Record #${id}
 
           ${parentTable}
 
           ${addressSection}
 
-
-          ---
-
           ${childTableHeader}
           ${childTableRows}
 
-
-          ---
-
           ${termInfo}
-
 
           ${submissionInfo}
           `
@@ -258,17 +251,9 @@ export function generateBookkeepingForm(
   )
 }
 
-export function generateBookkeepingForms({
-  rows,
-  term,
-}: {
-  rows: RowData[]
-  term: TermInfo
-}): string {
-  console.log(rows, term)
-
+export function generateBookkeepingForms(rows: Rows[], term: TermInfo): string {
   // 1. Start with the term-info page
-  const pages: string[] = [termInfoMarkdown(term)]
+  const pages: string[] = [termInfoMarkdown(term, true)]
 
   // 2. Append each registration as its own page
   for (const row of rows) {
