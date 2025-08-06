@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
+  import { createRawSnippet, onMount } from 'svelte'
   import { db } from '$lib/db'
   import { dev } from '$app/environment'
   import { Button } from '$lib/components/ui/button'
@@ -7,14 +7,16 @@
   import * as Select from '$lib/components/ui/select'
   import * as HoverCard from '$lib/components/ui/hover-card'
   import { Input } from '$lib/components/ui/input'
+  import { Switch } from '$lib/components/ui/switch'
+  import { Label } from '$lib/components/ui/label'
   import ColumnSortButton from '$lib/components/ColumnSortButton.svelte'
   import {
     generateBookkeepingForm,
     generateBookkeepingForms,
   } from '$lib/emailTemplates'
-
   import {
     createSvelteTable,
+    renderSnippet,
     renderComponent,
     FlexRender,
   } from '$lib/components/ui/data-table'
@@ -56,7 +58,34 @@
     return terms.find((t) => t.id === activeTermId)
   })
   let rows: Row[] = $state([])
+  let isFormatShort: boolean = $state(false)
+
   let rawRegs = []
+
+  function isoDecimalAge(isodob: string) {
+    const today = new Date()
+    const dob = new Date(isodob)
+    const diffMs = today.getTime() - dob.getTime()
+    const ageYears = diffMs / (1000 * 60 * 60 * 24 * 365)
+
+    return Math.round(ageYears * 100) / 100
+  }
+
+  function formatAgeNearest(decimalAge: number): string {
+    return `<strong>${Math.round(decimalAge)}</strong>`
+  }
+
+  function formatAgeShort(decimalAge: number): string {
+    const years = Math.floor(decimalAge)
+    const months = Math.round((decimalAge - years) * 12)
+
+    const adjustedYears = months === 12 ? years + 1 : years
+    const adjustedMonths = months === 12 ? 0 : months
+
+    return `<span>
+      <strong>${adjustedYears}</strong>y ${adjustedMonths > 0 ? `${adjustedMonths}m` : ''}
+    </span>`
+  }
 
   // Load all terms and active term
   async function loadTerms() {
@@ -94,17 +123,13 @@
 
     rawRegs = data
 
-    const today = new Date()
     rows = data.flatMap((reg) =>
       (reg.children as any[]).map((child, idx) => {
-        const dob = new Date(child.dob)
-        const diffMs = today.getTime() - dob.getTime()
-        const ageYears = diffMs / (1000 * 60 * 60 * 24 * 365)
         return {
           id: `${reg.id}-${idx}`,
           name: child.name,
           gender: child.sex,
-          age: Math.round(ageYears * 100) / 100,
+          age: isoDecimalAge(child.dob),
           parents: {
             father_name: reg.father_name,
             father_phone: reg.father_phone,
@@ -197,6 +222,14 @@
     },
     {
       accessorKey: 'age',
+      cell: (info) => {
+        const v = info.getValue<number>()
+        const html = isFormatShort ? formatAgeShort(v) : formatAgeNearest(v)
+        const snippet = createRawSnippet(() => ({
+          render: () => html,
+        }))
+        return renderSnippet(snippet, '')
+      },
       header: ({ column }) =>
         renderComponent(ColumnSortButton, {
           columnTitle: 'Age',
@@ -282,7 +315,13 @@
     </Select.Root>
   </div>
 
-  <Button onclick={exportBulkRows}>Export All</Button>
+  <Button onclick={exportBulkRows}>Export All Applications</Button>
+
+  <div class="flex items-center space-x-2">
+    <span>Format: Nearest</span>
+    <Switch bind:checked={isFormatShort} id="nearest-switch" />
+    <Label htmlFor="nearest-switch">Short</Label>
+  </div>
 
   <!-- Filter by name -->
   <!--
