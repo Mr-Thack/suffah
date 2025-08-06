@@ -168,8 +168,20 @@
     }
   }
 
-  function downloadHtml(html: string, filename: string) {
-    const blob = new Blob([html], { type: 'text/html' })
+  /* Utility: serialize 2D string array to CSV text */
+  function serializeCsv(rows: string[][]): string {
+    return rows
+      .map((r) => r.map((field) => `"${field.replace(/"/g, '""')}"`).join(','))
+      .join('\n')
+  }
+
+  /* Utility: download any text content as a file */
+  function downloadFile(
+    content: string,
+    filename: string,
+    mimeType: string = 'application/octet-stream',
+  ) {
+    const blob = new Blob([content], { type: mimeType })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -178,24 +190,103 @@
     URL.revokeObjectURL(url)
   }
 
-  function exportFirstRow() {
-    if (rawRegs.length === 0) return
+  /* CSV-specific download wrapper */
+  function downloadCsv(content: string, filename: string) {
+    downloadFile(content, filename, 'text/csv')
+  }
 
+  /* HTML-specific download wrapper */
+  function downloadHtml(content: string, filename: string) {
+    downloadFile(content, filename, 'text/html')
+  }
+
+  /**
+   * Export just the student view: Name, Sex, DOB (ISO)
+   */
+  function exportStudentViewCSV() {
+    if (!rawRegs.length) return
+
+    const rowsCsv: string[][] = [['Name', 'Sex', 'DOB']]
+
+    rawRegs.forEach((reg) => {
+      ;(reg.children as any[]).forEach((child) => {
+        rowsCsv.push([child.name, child.sex, child.dob])
+      })
+    })
+
+    const csvText = serializeCsv(rowsCsv)
+    downloadCsv(csvText, 'student_view.csv')
+  }
+
+  /**
+   * Export one CSV row per family, with dynamic child columns:
+   * id, father_name, father_phone, mother_name, mother_phone,
+   * child1_name, child1_sex, child1_dob, ..., childN_name, childN_sex, childN_dob
+   */
+  function exportEntireTableCSV() {
+    if (!rawRegs.length) return
+
+    // Determine the maximum number of children in any registration
+    const maxChildren = rawRegs.reduce((max, reg) => {
+      const count = (reg.children as any[]).length
+      return count > max ? count : max
+    }, 0)
+
+    // Build header
+    const header: string[] = [
+      'ID',
+      'Father Name',
+      'Father Phone',
+      'Mother Name',
+      'Mother Phone',
+    ]
+    for (let i = 1; i <= maxChildren; i++) {
+      header.push(`child${i}_name`, `child${i}_sex`, `child${i}_dob`)
+    }
+
+    const rowsCsv: string[][] = [header]
+
+    // Build rows per registration
+    rawRegs.forEach((reg) => {
+      const base = [
+        String(reg.id),
+        reg.father_name ?? '',
+        reg.father_phone ?? '',
+        reg.mother_name ?? '',
+        reg.mother_phone ?? '',
+      ]
+      const children = reg.children as any[]
+      // Add each child or empty placeholders
+      for (let i = 0; i < maxChildren; i++) {
+        if (i < children.length) {
+          const c = children[i]
+          base.push(c.name, c.sex, c.dob)
+        } else {
+          base.push('', '', '')
+        }
+      }
+      rowsCsv.push(base)
+    })
+
+    const csvText = serializeCsv(rowsCsv)
+    downloadCsv(csvText, 'entire_table.csv')
+  }
+
+  /**
+   * Use existing bookkeeping HTML generators
+   */
+  function exportFirstRow() {
+    if (!rawRegs.length) return
     const firstReg = rawRegs[0]
     const transformed = transformRegistration(firstReg)
     const html = generateBookkeepingForm(transformed, activeTerm)
-
     downloadHtml(html, 'registration_export.html')
   }
 
   function exportBulkRows() {
-    if (rawRegs.length === 0) return
-
+    if (!rawRegs.length) return
     const transformedRegs = rawRegs.map(transformRegistration)
-    console.log(transformedRegs)
-    console.log(activeTerm)
     const html = generateBookkeepingForms(transformedRegs, activeTerm)
-
     downloadHtml(html, 'registration_export_bulk.html')
   }
 
@@ -297,25 +388,44 @@
 <div class="p-4 space-y-4">
   <h1 class="text-2xl font-bold">Maktab Admin - Student List</h1>
 
-  <!-- Term Selector -->
+  <!-- term selector -->
   <div class="flex items-center gap-2">
-    <Select.Root type="single" bind:value={activeTermId}>
-      <Select.Trigger class="min-w-[200px]">
-        {#if activeTerm}
-          {activeTerm.name}
-        {:else}
-          Select a term...
-        {/if}
-      </Select.Trigger>
-      <Select.Content>
-        {#each terms as term}
-          <Select.Item value={term.id}>{term.name}</Select.Item>
-        {/each}
-      </Select.Content>
-    </Select.Root>
+    <div class="flex items-start flex-col">
+      <h3 class="text-lg font-bold">selected term:</h3>
+      <Select.Root type="single" bind:value={activeTermId}>
+        <Select.Trigger class="min-w-[200px]">
+          {#if activeTerm}
+            {activeTerm.name}
+          {:else}
+            Select a Term...
+          {/if}
+        </Select.Trigger>
+        <Select.Content>
+          {#each terms as term}
+            <Select.Item value={term.id}>{term.name}</Select.Item>
+          {/each}
+        </Select.Content>
+      </Select.Root>
+    </div>
+
+    <div class="flex items-start flex-col gap-4">
+      <h3 class="text-md font-bold">Export Options</h3>
+      <Button onclick={exportBulkRows}>Generate Report</Button>
+      <Button onclick={exportStudentViewCSV}>Students as CSV</Button>
+      <Button onclick={exportEntireTableCSV}>Applications as CSV</Button>
+    </div>
   </div>
 
-  <Button onclick={exportBulkRows}>Export All Applications</Button>
+  <div>
+    <p>
+      (Press "Print as PDF" when you open the newly generated file in your
+      Downloads)
+    </p>
+    <p>(This is good for bookkeeping)</p>
+    <p>(This is good for the Imam or who ever is sorting the students)</p>
+    <p>(Each application/family as its own row)</p>
+    <p>(I don't know who might need this, but I left it here just in case)</p>
+  </div>
 
   <div class="flex items-center space-x-2">
     <span>Format: Nearest</span>
