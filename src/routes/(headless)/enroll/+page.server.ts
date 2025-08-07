@@ -166,7 +166,7 @@ export const actions = {
       .eq('id', termId)
       .single()
 
-    console.log(termInfo)
+    console.log('Registering For:', termInfo)
 
     // 3) Destructure form data
     const {
