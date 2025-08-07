@@ -43,9 +43,13 @@
     resetForm: false,
     onUpdated: ({ form }) => {
       isSubmitting = false
-      if (!form.valid) return
+      if (!form.valid) {
+        console.error('Form Invalid:', form)
+        return
+      }
 
       if (form.errors?.confirmParent) {
+        console.log('Confirming if single parent')
         showParentWarning = true
       }
 
@@ -241,12 +245,14 @@
 
       if (status !== 'OK' || !token) {
         isSubmitting = false
+        console.error('Card info most likely invalid', status, token)
         toast.error('Card info invalid. Please try again.')
         return
       }
 
       $formData.nonce = token
 
+      console.log('Checking Information...')
       toast.info('Checking Information...')
 
       // Delay to ensure nonce has actually been set
@@ -263,12 +269,16 @@
     } finally {
       // Only reset isSubmitting if we're not proceeding to form submission
       if (!$formData.nonce) {
+        console.error("No nonce; Can't proceed!")
         isSubmitting = false
+      } else {
+        console.log('Nonce detected; moving on')
       }
     }
   }
 
   function proceedPayment() {
+    console.log('Successful! Redirecting!')
     showPaymentAlert = false
     if (!dev) {
       window.location.href = 'https://masjidsuffah.com/'
