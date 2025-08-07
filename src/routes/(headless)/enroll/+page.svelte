@@ -53,6 +53,7 @@
         showParentWarning = true
       }
 
+      console.log('Registration submitted successfully!')
       toast.success('Registration submitted successfully!')
       showPaymentAlert = true
     },
