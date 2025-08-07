@@ -388,10 +388,11 @@
 <div class="p-4 space-y-4">
   <h1 class="text-2xl font-bold">Maktab Admin - Student List</h1>
 
-  <!-- term selector -->
-  <div class="flex items-center gap-2">
-    <div class="flex items-start flex-col">
-      <h3 class="text-lg font-bold">selected term:</h3>
+  <!-- Controls -->
+  <div class="flex flex-wrap w-full items-center gap-8">
+    <!-- Term Selector -->
+    <div class="flex items-start flex-col min-w-[200px] flex-1">
+      <h3 class="text-lg font-bold">Selected Term:</h3>
       <Select.Root type="single" bind:value={activeTermId}>
         <Select.Trigger class="min-w-[200px]">
           {#if activeTerm}
@@ -408,7 +409,7 @@
       </Select.Root>
     </div>
 
-    <div class="flex items-start flex-col gap-4">
+    <div class="flex items-start flex-col gap-4 min-w-[200px] flex-1">
       <h3 class="text-md font-bold">Export Options</h3>
       <Button onclick={exportBulkRows}>Generate Report</Button>
       <Button onclick={exportStudentViewCSV}>Students as CSV</Button>
@@ -416,15 +417,29 @@
     </div>
   </div>
 
-  <div>
+  <div class="prose dark:prose-invert">
     <p>
-      (Press "Print as PDF" when you open the newly generated file in your
-      Downloads)
+      <strong>
+        Press "Print as PDF" when you open the newly generated report file in
+        your Downloads
+      </strong>
     </p>
-    <p>(This is good for bookkeeping)</p>
-    <p>(This is good for the Imam or who ever is sorting the students)</p>
-    <p>(Each application/family as its own row)</p>
-    <p>(I don't know who might need this, but I left it here just in case)</p>
+
+    <h5>Notes:</h5>
+    <ul>
+      <li>"Generate Report" is good for bookkeeping</li>
+      <li>"Students as CSV" is good sorting the students</li>
+      <li>
+        I don't know who might need "Applications as CSV", but I left it here
+        just in case
+      </li>
+    </ul>
+
+    <em>
+      Oh, also the filters and sorting on this table aren't working properly
+      right now, but if you download as a CSV and open it MS Excel or Google
+      Docs, everything will be fine, inshaAllah.
+    </em>
   </div>
 
   <div class="flex items-center space-x-2">
