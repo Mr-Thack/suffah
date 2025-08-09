@@ -15,16 +15,17 @@
     generateBookkeepingForms,
   } from '$lib/emailTemplates'
   import {
+    type ColumnDef,
     createSvelteTable,
     renderSnippet,
     renderComponent,
     FlexRender,
   } from '$lib/components/ui/data-table'
   import {
-    type ColumnDef,
-    getCoreRowModel,
     getSortedRowModel,
+    getCoreRowModel,
     getFilteredRowModel,
+    createColumnHelper,
   } from '@tanstack/table-core'
 
   interface Row {
@@ -299,20 +300,32 @@
     }
   })
 
-  // Table setup without pagination
-  const columns: ColumnDef<Row>[] = [
-    {
-      accessorKey: 'name',
-      header: 'Student Name',
-      cell: (info) => info.getValue(),
-    },
-    {
-      accessorKey: 'gender',
-      header: 'Gender',
-      cell: (info) => info.getValue(),
-    },
-    {
-      accessorKey: 'age',
+  const colh = createColumnHelper<Row>()
+
+  const columns = [
+    colh.accessor('name', { header: 'Student Name' }),
+    colh.accessor('gender', { header: 'Gender' }),
+    colh.accessor('age', {
+      header: ({ column }) =>
+        renderComponent(ColumnSortButton, {
+          columnTitle: 'Age',
+          sortDirection: column.getIsSorted(),
+          onclick: () => {
+            const currentSort = column.getIsSorted()
+            console.log('currentSort', currentSort)
+            console.log('column', column)
+            if (currentSort === false) {
+              console.log('Triggering to False')
+              column.toggleSorting(false) // Set to ascending
+            } else if (currentSort === 'asc') {
+              console.log('Triggering to True')
+              column.toggleSorting(true) // Set to descending
+            } else {
+              console.log('Clearing')
+              column.clearSorting() // Clear sorting (back to unsorted)
+            }
+          },
+        }),
       cell: (info) => {
         const v = info.getValue<number>()
         const html = isFormatShort ? formatAgeShort(v) : formatAgeNearest(v)
@@ -321,53 +334,18 @@
         }))
         return renderSnippet(snippet, '')
       },
-      header: ({ column }) =>
-        renderComponent(ColumnSortButton, {
-          columnTitle: 'Age',
-          sortDirection: column.getIsSorted(),
-          onclick: () => {
-            const currentSort = column.getIsSorted()
-            console.log(currentSort)
-            console.log(column)
-            if (currentSort === false) {
-              column.toggleSorting(false) // Set to ascending
-            } else if (currentSort === 'asc') {
-              column.toggleSorting(true) // Set to descending
-            } else {
-              column.clearSorting() // Clear sorting (back to unsorted)
-            }
-          },
-        }),
-    },
-    {
-      id: 'actions',
-      header: '',
-      cell: ({ row }) => {
-        const p = row.original.parents
-        return null
-        /*
-        return HoverCard.Root.render({
-          trigger: `<div class=\"cursor-pointer hover:text-primary\">🛈</div>`,
-          content: `<div class=\"p-2 space-y-1\">
-          <div><strong>Father:</strong> ${p.father_name} (${p.father_phone})</div>
-          <div><strong>Mother:</strong> ${p.mother_name} (${p.mother_phone})</div>
-          </div>`,
-        })*/
-      },
-      enableSorting: false,
-      enableHiding: false,
-    },
+    }),
   ]
 
-  let sorting: SortingState = $state([])
+  let sorting = $state<SortingState>([])
 
   let options = $derived({
     get data() {
       return rows
     },
     columns,
-    get state() {
-      return sorting
+    state: {
+      sorting,
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -379,10 +357,16 @@
       } else {
         sorting = updater
       }
+      options.state.sorting = sorting
+      options = options
     },
   })
 
   let table = $derived(createSvelteTable(options))
+
+  function testDebug() {
+    console.log(options)
+  }
 </script>
 
 <div class="p-4 space-y-4">
@@ -417,6 +401,10 @@
     </div>
   </div>
 
+  {#if dev}
+    <Button onclick={testDebug}>Test Stuff</Button>
+  {/if}
+
   <div class="prose dark:prose-invert">
     <p>
       <strong>
@@ -425,7 +413,7 @@
       </strong>
     </p>
 
-    <h5>Notes:</h5>
+    <h4>Notes:</h4>
     <ul>
       <li>"Generate Report" is good for bookkeeping</li>
       <li>"Students as CSV" is good sorting the students</li>
@@ -436,9 +424,8 @@
     </ul>
 
     <em>
-      Oh, also the filters and sorting on this table aren't working properly
-      right now, but if you download as a CSV and open it MS Excel or Google
-      Docs, everything will be fine, inshaAllah.
+      Oh, also, I haven't found the time to implement a filter button, but you
+      can download the students CSV file and use Excel or Docs.
     </em>
   </div>
 
