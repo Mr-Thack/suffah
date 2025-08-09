@@ -25,7 +25,6 @@
     getSortedRowModel,
     getCoreRowModel,
     getFilteredRowModel,
-    createColumnHelper,
   } from '@tanstack/table-core'
 
   interface Row {
@@ -300,41 +299,66 @@
     }
   })
 
-  const colh = createColumnHelper<Row>()
+  function capFirst(str) {
+    if (!str) return ''
+    return str.charAt(0).toUpperCase() + str.slice(1)
+  }
 
+  function getSortHeader(title) {
+    return ({ column }) =>
+      renderComponent(ColumnSortButton, {
+        columnTitle: title,
+        sortDirection: column.getIsSorted(),
+        onclick: () => {
+          const currentSort = column.getIsSorted()
+          if (currentSort === false) {
+            column.toggleSorting(false, true) // Set to ascending
+          } else if (currentSort === 'asc') {
+            column.toggleSorting(true, true) // Set to descending
+          } else {
+            column.clearSorting() // Clear sorting (back to unsorted)
+          }
+        },
+      })
+  }
+
+  function getFormattedCell(formatFn: (val: string) => string) {
+    return (info) => {
+      const val = info.getValue()
+      const snippet = createRawSnippet(() => ({
+        render: () => formatFn(val),
+      }))
+      return renderSnippet(snippet, '')
+    }
+  }
+
+  // [WARNING]: MUTLI SORT DOES NOT WORK
   const columns = [
-    colh.accessor('name', { header: 'Student Name' }),
-    colh.accessor('gender', { header: 'Gender' }),
-    colh.accessor('age', {
-      header: ({ column }) =>
-        renderComponent(ColumnSortButton, {
-          columnTitle: 'Age',
-          sortDirection: column.getIsSorted(),
-          onclick: () => {
-            const currentSort = column.getIsSorted()
-            console.log('currentSort', currentSort)
-            console.log('column', column)
-            if (currentSort === false) {
-              console.log('Triggering to False')
-              column.toggleSorting(false) // Set to ascending
-            } else if (currentSort === 'asc') {
-              console.log('Triggering to True')
-              column.toggleSorting(true) // Set to descending
-            } else {
-              console.log('Clearing')
-              column.clearSorting() // Clear sorting (back to unsorted)
-            }
-          },
-        }),
-      cell: (info) => {
-        const v = info.getValue<number>()
-        const html = isFormatShort ? formatAgeShort(v) : formatAgeNearest(v)
-        const snippet = createRawSnippet(() => ({
-          render: () => html,
-        }))
-        return renderSnippet(snippet, '')
-      },
-    }),
+    {
+      accessorKey: 'name',
+      header: 'Student Name',
+      // header: getSortHeader('Student Name'),
+      cell: (info) => info.getValue(),
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'gender',
+      header: 'Gender',
+      cell: getFormattedCell((val) => {
+        const color = val == 'male' ? 'text-blue-500' : 'text-pink-500'
+        return `<span class="${color}">${capFirst(val)}</span>`
+      }),
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'age',
+      header: getSortHeader('Age'),
+      cell: getFormattedCell((val) => {
+        return isFormatShort ? formatAgeShort(val) : formatAgeNearest(val)
+      }),
+      enableSorting: true,
+      enableMultiSort: true,
+    },
   ]
 
   let sorting = $state<SortingState>([])
@@ -344,21 +368,28 @@
       return rows
     },
     columns,
-    state: {
-      sorting,
+    get state() {
+      return {
+        get sorting() {
+          return sorting
+        },
+      }
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     debugTable: true,
+    isMultiSortEvent: (e) => true,
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
         sorting = updater(sorting)
       } else {
         sorting = updater
       }
-      options.state.sorting = sorting
-      options = options
+      console.log('To Append', sorting)
+      sorting = sorting
+      // options.state.sorting = sorting
+      console.log('After', options.state.sorting)
     },
   })
 
@@ -453,11 +484,9 @@
             {#each hg.headers as header}
               <Head>
                 {#if !header.isPlaceholder}
-                  <button onclick={header.column.getToggleSortingHandler()}>
-                    <FlexRender
-                      content={header.column.columnDef.header}
-                      context={header.getContext()} />
-                  </button>
+                  <FlexRender
+                    content={header.column.columnDef.header}
+                    context={header.getContext()} />
                 {/if}
               </Head>
             {/each}
