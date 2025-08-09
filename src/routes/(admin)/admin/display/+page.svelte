@@ -1,1 +1,1 @@
-<p>Not working rn. Coming soon.</p>
+<p>Display Page Manipulation not implemented yet. Coming soon.</p>

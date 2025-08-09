@@ -1,1 +1,1 @@
-<p>Not working rn. Coming soon.</p>
+<p>Direct Database Access not implemented yet. Coming soon.</p>
