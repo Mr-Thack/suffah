@@ -10,6 +10,7 @@
   import { Switch } from '$lib/components/ui/switch'
   import { Label } from '$lib/components/ui/label'
   import ColumnSortButton from '$lib/components/ColumnSortButton.svelte'
+  import SexFilterButton from '$lib/components/SexFilterButton.svelte'
   import {
     generateBookkeepingForm,
     generateBookkeepingForms,
@@ -30,7 +31,7 @@
   interface Row {
     id: string
     name: string
-    gender: string
+    sex: string
     age: number
     parents: {
       father_name: string | null
@@ -128,7 +129,7 @@
         return {
           id: `${reg.id}-${idx}`,
           name: child.name,
-          gender: child.sex,
+          sex: child.sex,
           age: isoDecimalAge(child.dob),
           parents: {
             father_name: reg.father_name,
@@ -342,13 +343,31 @@
       enableSorting: true,
     },
     {
-      accessorKey: 'gender',
-      header: 'Gender',
+      accessorKey: 'sex',
+      header: ({ column }) =>
+        renderComponent(SexFilterButton, {
+          columnTitle: 'Sex',
+          filterValue: column.getFilterValue(),
+          onclick: () => {
+            const currentFilter = column.getFilterValue()
+            console.log('Old:', currentFilter)
+            if (!currentFilter) {
+              console.log(rows)
+              column.setFilterValue('male')
+            } else if (currentFilter === 'male') {
+              column.setFilterValue('female')
+            } else {
+              column.setFilterValue(undefined)
+            }
+            console.log('New:', column.getFilterValue())
+          },
+        }),
       cell: getFormattedCell((val) => {
         const color = val == 'male' ? 'text-blue-500' : 'text-pink-500'
         return `<span class="${color}">${capFirst(val)}</span>`
       }),
       enableSorting: false,
+      filterFn: 'equals',
     },
     {
       accessorKey: 'age',
@@ -361,7 +380,8 @@
     },
   ]
 
-  let sorting = $state<SortingState>([])
+  let sorting = $state([])
+  let filtering = $state([])
 
   let options = $derived({
     get data() {
@@ -372,6 +392,9 @@
       return {
         get sorting() {
           return sorting
+        },
+        get columnFilters() {
+          return filtering
         },
       }
     },
@@ -390,6 +413,14 @@
       sorting = sorting
       // options.state.sorting = sorting
       console.log('After', options.state.sorting)
+    },
+    onColumnFiltersChange: (updater) => {
+      if (typeof updater === 'function') {
+        filtering = updater(filtering)
+      } else {
+        filtering = updater
+      }
+      filtering = filtering
     },
   })
 
@@ -453,11 +484,6 @@
         just in case
       </li>
     </ul>
-
-    <em>
-      Oh, also, I haven't found the time to implement a filter button, but you
-      can download the students CSV file and use Excel or Docs.
-    </em>
   </div>
 
   <div class="flex items-center space-x-2">
