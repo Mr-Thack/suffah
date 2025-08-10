@@ -56,7 +56,7 @@
     ],
     [
       "What if I can't make it for all 3 days?",
-      'We encourage attendance so that there is no shortfall in the work learned. However, if a child can only come for certain days, we will try our best to accommodate the child.',
+      'Children who cannot attend all 3 days will be removed from the program.',
     ],
     [
       'Can I volunteer?',
@@ -128,7 +128,7 @@
         </CardHeader>
         <CardContent class="space-y-2">
           <p class="opacity-90">Tuesday - Thursday</p>
-          <p class="text-2xl font-bold">5:30 PM - 7:00 PM</p>
+          <p class="text-2xl font-bold">6:00 PM - 7:30 PM</p>
           <Badge variant="secondary" shade="dark">3 Days Weekly</Badge>
         </CardContent>
       </Card>
