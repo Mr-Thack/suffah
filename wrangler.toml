@@ -1,0 +1,7 @@
+name = "suffah-display"
+compatibility_date = "2026-05-13"
+
+[[d1_databases]]
+binding = "DB" # This is how you access it in code (e.g., env.DB)
+database_name = "suffahdb"
+database_id = "6ce1edd4-23c0-4c59-887e-f048721bd148"
