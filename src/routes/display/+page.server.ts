@@ -1,7 +1,24 @@
-export async function load({ platform }) {
+function getSecondsToMidnightAtlanta() {
   const now = new Date();
-  const currentMonth = now.getMonth() + 1; // JavaScript months are 0-indexed (0-11)
-  const currentDay = now.getDate();
+
+  const atlantaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/New_York" }),
+  );
+
+  const tomorrow = new Date(atlantaTime);
+  tomorrow.setHours(24, 0, 0, 0);
+
+  return Math.floor((tomorrow - atlantaTime) / 1000);
+}
+
+export async function load({ platform, setHeaders }) {
+  const now = new Date();
+
+  const atlantaTime = new Date(
+    now.toLocaleString("en-US", { timeZone: "America/New_York" }),
+  );
+  const currentMonth = atlantaTime.getMonth() + 1; // JavaScript months are 0-indexed (0-11)
+  const currentDay = atlantaTime.getDate();
 
   let salahData = null;
   let changeData = {
@@ -84,10 +101,26 @@ export async function load({ platform }) {
     );
   }
 
+  let dbError = timingError || changeError;
+
+  if (dbError) {
+    const secondsToMidnight = getSecondsToMidnightAtlanta();
+
+    setHeaders({
+      // max-age=899 (almost 15 mins) for the browser
+      // s-maxage to tell Cloudflare to hold it until midnight
+      "Cache-Control": `public, max-age=899, s-maxage=${secondsToMidnight}`,
+    });
+  } else {
+    setHeaders({
+      "Cache-Control": "no-store",
+    });
+  }
+
   return {
     salahData: salahData,
     changeData: changeData,
-    dbError: timingError || changeError,
+    dbError: dbError,
     timingError: timingError,
     changeError: changeError,
   };
